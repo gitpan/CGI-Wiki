@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.27';
+$VERSION = '0.28';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -282,6 +282,19 @@ Returns the search backend object.
 sub search_obj {
     my $self = shift;
     return $self->{_search};
+}
+
+=item B<formatter>
+
+  my $formatter = $wiki->formatter;
+
+Returns the formatter backend object.
+
+=cut
+
+sub formatter {
+    my $self = shift;
+    return $self->{_formatter};
 }
 
 # Now for the things that are provided by the various plugins.

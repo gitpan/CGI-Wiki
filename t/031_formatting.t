@@ -1,7 +1,7 @@
 use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (8 * $CGI::Wiki::TestConfig::Utilities::num_stores);
+use Test::More tests => (9 * $CGI::Wiki::TestConfig::Utilities::num_stores);
 use Test::MockObject;
 
 my %stores = CGI::Wiki::TestConfig::Utilities->stores;
@@ -9,7 +9,7 @@ my %stores = CGI::Wiki::TestConfig::Utilities->stores;
 my ($store_name, $store);
 while ( ($store_name, $store) = each %stores ) {
     SKIP: {
-            skip "$store_name storage backend not configured for testing", 8
+            skip "$store_name storage backend not configured for testing", 9
             unless $store;
 
         my ($wiki, $cooked);
@@ -17,6 +17,8 @@ while ( ($store_name, $store) = each %stores ) {
         # Test that a Wiki object created without an explicit formatter sets
         # defaults sensibly in its default formatter.
         $wiki = CGI::Wiki->new( store => $store );
+        isa_ok( $wiki->formatter, "CGI::Wiki::Formatter::Default",
+		"default formatter used if not specified" );
         # White box testing.
         foreach my $want_defined ( qw ( extended_links implicit_links
                                         allowed_tags macros node_prefix ) ) {
