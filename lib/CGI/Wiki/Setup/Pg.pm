@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::Pg;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 use DBI;
 use Carp;
@@ -14,7 +14,7 @@ CREATE TABLE node (
   name      varchar(200) NOT NULL DEFAULT '',
   version   integer      NOT NULL default 0,
   text      text         NOT NULL default '',
-  modified  datetime     default NULL
+  modified  timestamp without time zone    default NULL
 )
 |, qq|
 CREATE UNIQUE INDEX node_pkey ON node (name)
@@ -25,7 +25,7 @@ CREATE TABLE content (
   name      varchar(200) NOT NULL default '',
   version   integer      NOT NULL default 0,
   text      text         NOT NULL default '',
-  modified  datetime     default NULL,
+  modified  timestamp without time zone    default NULL,
   comment   text         NOT NULL default ''
 )
 |, qq|

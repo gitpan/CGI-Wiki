@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw(croak);
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 =head1 NAME
 
@@ -35,11 +35,9 @@ Can't see yet why you'd want to use the backends directly, but:
 					    dbuser => "wiki",
 					    dbpass => "wiki" );
 
-dbname and dbuser parameters are mandatory. If you want defaults done
-for you then get at it via CGI::Wiki instead. dbpass isn't mandatory,
-but you'll want to supply it unless your authentication method doesn't
-require it. If your authentication method doesn't need a database
-username, just put any old junk in there.
+C<dbname> is mandatory. C<dbpass> and C<dbuser> are optional, but
+you'll want to supply them unless your database's authentication
+method doesn't require it.
 
 =cut
 
@@ -54,10 +52,11 @@ sub _init {
     my ($self, %args) = @_;
 
     # Store parameters.
-    foreach ( qw(dbname dbuser) ) {
+    foreach ( qw(dbname) ) {
         die "Must supply a value for $_" unless defined $args{$_};
         $self->{"_$_"} = $args{$_};
     }
+    $self->{_dbuser} = $args{dbuser} || "";
     $self->{_dbpass} = $args{dbpass} || "";
     $self->{_checksum_method} = \&md5_hex;
 

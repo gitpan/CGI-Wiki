@@ -1,3 +1,11 @@
+0.16    5 February 2003
+        Changed CGI::Wiki::Setup::Pg to use the 'timestamp' data type
+          instead of 'datetime', since 'datetime' was deprecated and
+          has been removed in Postgres 7.3.
+        Fixed bug with supplying blank database username/password;
+          thanks to DH for the bug report.
+        Fixed mistake in pod, pointed out by Podmaster.
+
 0.15    5 January 2003
         Amended store setup modules so their 'setup' functions don't
           wipe pre-existing data; added 'cleardb' functions for when you

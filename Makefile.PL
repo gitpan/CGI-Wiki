@@ -81,10 +81,10 @@ if ($CGI::Wiki::TestConfig::configured
         if ($dbname and $dbname ne "undef") {
 	    $dbuser = prompt "          Database user: ",
 	                     $config{$store_type}{dbuser};
-            undef $dbname unless ($dbname and $dbname ne "undef");
+            undef $dbuser unless ($dbuser and $dbuser ne "undef");
 	    $dbpass = prompt "      Database password: ",
 	                     $config{$store_type}{dbpass};
-            undef $dbname unless ($dbname and $dbname ne "undef");
+            undef $dbpass unless ($dbpass and $dbpass ne "undef");
 
             # Check that these connection parameters actually work.
             my $dbh = eval { DBI->connect($dsn_prefix{$store_type}.$dbname,

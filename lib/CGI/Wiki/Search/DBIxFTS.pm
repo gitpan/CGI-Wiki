@@ -62,9 +62,9 @@ sub _init {
   # phrase 'wombat defenestration'.
   %results = $search->search_nodes('expert "wombat defenestration"');
 
-  # Find all the nodes which contain any one of the form-supplied
-  # search terms.
-  %results = $search->search_nodes($q->param('terms'), 'OR');
+  # Find all the nodes which contain at least one of the words
+  # 'buffy', 'pony', and 'pie'.
+  %results = $search->search_nodes('buffy pony pie', 'OR');
 
 Returns a (possibly empty) hash whose keys are the node names and
 whose values are the scores in some kind of relevance-scoring system I
