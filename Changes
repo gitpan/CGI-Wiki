@@ -1,4 +1,9 @@
-0.02    ? November 2002
+0.03    9 November 2002
+        Forgot to regenerate and add the README (I've put it in the
+        MANIFEST now to stop that happening again).  Also forgot to
+        mention that I've upped the bribe.
+
+0.02    9 November 2002
         Pulled out the database setup stuff into modules (Mark Fowler
           did most of this bit, thanks).
         Added recent_changes method and its tests, changed the example

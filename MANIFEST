@@ -2,6 +2,7 @@ Changes
 INSTALL
 MANIFEST
 Makefile.PL
+README
 TODO
 bin/user-setup-mysql-dbixfts.pl
 bin/user-setup-mysql.pl
