@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -37,12 +37,23 @@ see the 'Changes' file for details.
 
 =head1 SYNOPSIS
 
-  my $store     = CGI::Wiki::Store::MySQL->new( ... );
-  my $search    = CGI::Wiki::Search::SII->new( ... );
-  my $formatter = My::HomeMade::Formatter->new;
-  my $wiki   = CGI::Wiki->new( store     => $store,
-                               search    => $search,
-                               formatter => $formatter );
+  # Set up a wiki object with an SQLite storage backend, and an
+  # inverted index/DB_File search backend.  This store/search
+  # combination can be used on systems with no access to an actual
+  # database server.
+
+  my $store     = CGI::Wiki::Store::SQLite->new(
+      dbname => "/home/wiki/store.db" );
+  my $indexdb   = Search::InvertedIndex::DB::DB_File_SplitHash->new(
+      -map_name  => "/home/wiki/indexes.db",
+      -lock_mode => "EX" );
+  my $search    = CGI::Wiki::Search::SII->new(
+      indexdb => $indexdb );
+
+  my $wiki      = CGI::Wiki->new( store     => $store,
+                                  search    => $search );
+
+  # Do all the CGI stuff.
   my $q      = CGI->new;
   my $action = $q->param("action");
   my $node   = $q->param("node");
@@ -75,19 +86,33 @@ see the 'Changes' file for details.
 
 =item B<new>
 
-  my $store     = CGI::Wiki::Store::MySQL->new( ... );
-  my $search    = CGI::Wiki::Search::SII->new( ... );
-  my $formatter = CGI::Wiki::Formatter::Default->new( ... );
-  my %config = ( store     => $store,     # mandatory
-                 search    => $search,    # defaults to undef
-                 formatter => $formatter ); # defaults to ::Default
+  # Set up store, search and formatter objects.
+  my $store     = CGI::Wiki::Store::SQLite->new(
+      dbname => "/home/wiki/store.db" );
+  my $indexdb   = Search::InvertedIndex::DB::DB_File_SplitHash->new(
+      -map_name  => "/home/wiki/indexes.db",
+      -lock_mode => "EX" );
+  my $search    = CGI::Wiki::Search::SII->new(
+      indexdb => $indexdb );
+  my $formatter = My::HomeMade::Formatter->new;
 
-  my $wiki = CGI::Wiki->new(%config);
+  my $wiki = CGI::Wiki->new(
+      store     => $store,     # mandatory
+      search    => $search,    # defaults to undef
+      formatter => $formatter  # defaults to something suitable
+  );
 
 C<store> must be an object of type C<CGI::Wiki::Store::*> and
 C<search> if supplied must be of type C<CGI::Wiki::Search::*> (though
 this isn't checked yet - FIXME). If C<formatter> isn't supplied, it
 defaults to an object of class L<CGI::Wiki::Formatter::Default>.
+
+You can get a searchable Wiki up and running on a system without an
+actual database server by using the SQLite storage backend with the
+SII/DB_File search backend - cut and paste the lines above for a quick
+start, and see L<CGI::Wiki::Store::SQLite>, L<CGI::Wiki::Search::SII>,
+and L<Search::InvertedIndex::DB::DB_File_SplitHash> when you want to
+learn the details.
 
 C<formatter> can be any object that behaves in the right way; this
 essentially means that it needs to provide a C<format> method which
@@ -283,6 +308,10 @@ See the docs for your chosen formatter backend to see how these work.
 =item * L<CGI::Wiki::Search::DBIxFTS>
 
 =item * L<CGI::Wiki::Search::SII>
+
+=item * L<DBIx::FullTextSearch>
+
+=item * L<Search::InvertedIndex>
 
 =item * L<Text::WikiFormat>
 

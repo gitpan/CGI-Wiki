@@ -5,7 +5,9 @@ use CGI::Wiki::TestConfig;
 # Note - this test will raise warnings about the test database not being
 # open at cleanup.  This is a known problem which shouldn't affect normal use.
 
-my $testing = $CGI::Wiki::TestConfig::config{search_invertedindex};
+my $sii_configured = $CGI::Wiki::TestConfig::config{search_invertedindex};
+my $mysql_configured  = $CGI::Wiki::TestConfig::config{MySQL}{dbname}  ? 1 : 0;
+my $testing = $sii_configured && $mysql_configured;
 
 if ($testing) {
     require CGI::Wiki::Setup::SII;
@@ -29,7 +31,7 @@ if ($testing) {
 }
 
 SKIP: {
-    skip "Not testing Search::InvertedIndex backend", 1 unless $testing;
-    pass("Search::InvertedIndex test backend set up successfully");
+    skip "Not testing Search::InvertedIndex/MySQL backend", 1 unless $testing;
+    pass("Search::InvertedIndex/MySQL test backend set up successfully");
 }
 

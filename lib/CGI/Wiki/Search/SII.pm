@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 =head1 NAME
 
@@ -75,6 +75,8 @@ initially be the number of terms that appear in the node, perhaps.
 Defaults to AND searches (if $and_or is not supplied, or is anything
 other than C<OR> or C<or>).
 
+Searches are case-insensitive.
+
 =cut
 
 sub search_nodes {
@@ -89,7 +91,9 @@ sub search_nodes {
     my @terms = grep { length > 1            # ignore single characters
                       and ! /^\W*$/ }        # and things composed entirely
                                              #   of non-word characters
-               split(/\b/, $termstr);     # split at word boundaries
+               split( /\b/,                  # split at word boundaries
+                            lc($termstr)     # be case-insensitive
+                    );
 
     # Create a leaf for each search term.
     my @leaves;
@@ -129,10 +133,15 @@ sub index_node {
     croak "Must supply a node name" unless $node;
     croak "Must supply node content" unless $content;
 
-    my @keys = grep { length > 1             # ignore single characters
-                      and ! /^\W*$/ }        # and things composed entirely
-                                             #   of non-word characters
-               split(/\b/, $content);       # split at word boundaries
+    my @keys = grep { length > 1                 # ignore single characters
+                      and ! /^\W*$/ }            # and things composed entirely
+                                                 #   of non-word characters
+               split( /\b/,                      # split at word boundaries
+                            lc(                  # be case-insensitive
+                                "$content $node" # index content and title
+                              )
+                    );
+
     my $update = Search::InvertedIndex::Update->new(
         -group => "nodes",
         -index => $node,

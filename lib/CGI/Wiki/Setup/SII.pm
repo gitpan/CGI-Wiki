@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::SII;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.01;
+$VERSION = '0.02';
 
 use DBI;
 use Search::InvertedIndex;
@@ -44,6 +44,7 @@ sub setup {
     # Drop indexes if they already exist.
     $indexdb->open;
     $indexdb->clear;
+    $indexdb->close;
 
     # If we've been passed a store, index all its data.
     my $store = $args{store};

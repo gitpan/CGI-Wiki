@@ -1,7 +1,6 @@
-#!/usr/bin/perl -w
-
+local $^W = 1;
 use strict;
-use Test::More tests => 215;
+use Test::More tests => 320;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -50,10 +49,20 @@ push @tests, { store  => "CGI::Wiki::Store::Pg",
 	       search => undef,
 	       config => $config{Pg},
 	       do     => ( $config{Pg}{dbname} ? 1 : 0 ) };
+push @tests, { store  => "CGI::Wiki::Store::Pg",
+	       search => "CGI::Wiki::Search::SII",
+	       config => $config{Pg},
+	       do     => ( $config{Pg}{dbname}
+                           and $config{search_invertedindex} ? 1 : 0 ) };
 push @tests, { store  => "CGI::Wiki::Store::SQLite",
 	       search => undef,
 	       config => $config{SQLite},
 	       do     => ( $config{SQLite}{dbname} ? 1 : 0 ) };
+push @tests, { store  => "CGI::Wiki::Store::SQLite",
+	       search => "CGI::Wiki::Search::SII",
+	       config => $config{SQLite},
+	       do     => ( $config{SQLite}{dbname}
+                           and $config{search_invertedindex} ? 1 : 0 ) };
 
 foreach my $configref (@tests) {
     my %testconfig = %$configref;
@@ -61,7 +70,10 @@ foreach my $configref (@tests) {
     SKIP: {
         skip "Store $store_class and search "
 	   . ( defined $search_class ? $search_class : "undef" )
-	   . " not configured for testing", 42 unless $testconfig{do};
+	   . " not configured for testing", 45 unless $testconfig{do};
+
+        print "#####\n##### Test config: STORE: $store_class, SEARCH: "
+	   . ( defined $search_class ? $search_class : "undef" ) . "\n#####\n";
 
 	##### Grab working db/user/pass.
 	my $dbname = $testconfig{config}{dbname};
@@ -83,15 +95,23 @@ foreach my $configref (@tests) {
 	        my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass);
 		%search_config = ( dbh => $dbh );
 	    } elsif ( $search_class eq "CGI::Wiki::Search::SII" ) {
-                # Only test with MySQL for now.  FIXME.
-                my $indexdb = Search::InvertedIndex::DB::Mysql->new(
-                   -db_name    => $dbname,
-                   -username   => $dbuser,
-                   -password   => $dbpass,
-		   -hostname   => '',
-                   -table_name => 'siindex',
-                   -lock_mode  => 'EX' );
-		%search_config = ( indexdb => $indexdb );
+  	        if ( $store_class eq "CGI::Wiki::Store::MySQL" ) {
+                    # If we can test the MySQL SII backend, do so.
+                    my $indexdb = Search::InvertedIndex::DB::Mysql->new(
+                       -db_name    => $dbname,
+                       -username   => $dbuser,
+                       -password   => $dbpass,
+	   	       -hostname   => '',
+                       -table_name => 'siindex',
+                       -lock_mode  => 'EX' );
+		    %search_config = ( indexdb => $indexdb );
+		} else {
+                    # Otherwise just test the default DB_File backend.
+                    my $indexdb = Search::InvertedIndex::DB::DB_File_SplitHash->new(
+                       -map_name  => 't/sii-db-file-test.db',
+                       -lock_mode  => 'EX' );
+		    %search_config = ( indexdb => $indexdb );
+                }
 	    } else {
 	        die "Whoops, don't know how to set up a $search_class";
             }
@@ -154,7 +174,7 @@ foreach my $configref (@tests) {
 
         ##### Test searching.
         SKIP: {
-            skip "Not testing search for this configuration", 10
+            skip "Not testing search for this configuration", 13
 	        unless $search;
             my %results = eval {
                 local $SIG{__WARN__} = sub { die $_[0] };
@@ -179,7 +199,7 @@ foreach my $configref (@tests) {
     	      "...and the OR search seems to work" );
 
             SKIP: {
-                skip "Search backend $search doesn't support"
+                skip "Search backend $search_class doesn't support"
 		   . " phrase searches", 2
 	            unless $wiki->supports_phrase_searches;
 
@@ -188,6 +208,20 @@ foreach my $configref (@tests) {
 		ok( ! defined $results{"001 Defenestration"},
 		    "...and ignores nodes that only have part of the phrase" );
 	    }
+
+            # Test case-insensitivity.
+            %results = $wiki->search_nodes('performing');
+            ok( defined $results{"Everyone's Favourite Hobby"},
+                "a lower-case search finds things defined in mixed case" );
+
+            %results = $wiki->search_nodes('WoMbAt');
+            ok( defined $results{"Everyone's Favourite Hobby"},
+                "a mixed-case search finds things defined in lower case" );
+
+            # Check that titles are searched.
+            %results = $wiki->search_nodes('Another');
+            ok( defined $results{"Another Node"},
+                "titles are searched" );
 
 	    ##### Test that newly-created nodes come up in searches, and that
 	    ##### once deleted they don't come up any more.

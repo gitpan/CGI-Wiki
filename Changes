@@ -1,3 +1,12 @@
+0.12    1 January 2003
+        The Search::InvertedIndex backend wasn't indexing the node titles -
+          fixed and added tests.
+        Added tests for non-MySQL Search::InvertedIndex backends and fixed
+          CGI::Wiki::Search::SII to be case-insensitive all the time (instead
+          of just when using MySQL).
+        Tweaked the documentation some more - offers to simplify the docs
+          and/or write a tutorial would be greatly appreciated.
+
 0.11    31 December 2002
         Changes suggested by blair christensen, to allow alternate formatters.
         See the README for details and CGI::Wiki::Formatter::Default for an

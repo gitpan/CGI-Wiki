@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 =head1 NAME
 
@@ -73,6 +73,8 @@ initially be the number of terms that appear in the node, perhaps.
 
 Defaults to AND searches (if $and_or is not supplied, or is anything
 other than C<OR> or C<or>).
+
+Searches are case-insensitive.
 
 =cut
 

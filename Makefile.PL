@@ -107,28 +107,24 @@ if ($CGI::Wiki::TestConfig::configured
 	}
     }
 
-    # If we have a MySQL store configured, see if they want to use the
-    # DBIx::FullTextSearch search backend.
-    eval { require DBIx::FullTextSearch; };
-    my $fts_inst = $@ ? 0 : 1;
-    if ($config{MySQL}{dbname} and $fts_inst) {
-        my $test = prompt "\nThe MySQL storage backend is compatible with "
-	         . "the\nDBIx::FullTextSearch search backend.\n"
-		 . "Enter 'y' or 'Y' to test this, anything else to not: ",
-                      $config{dbixfts} ? "y" : "n";
-        if (lc($test) eq "y") {
-            $config{dbixfts} = 1;
-	} else {
-            $config{dbixfts} = undef;
-        }
-    } else {
-        $config{dbixfts} = undef;
-    }
-
     print "\n";
 
     # Copy the config hash to the right namespace.
     %CGI::Wiki::TestConfig::config = %config;
+}
+
+# If we have a MySQL store configured, we can test the DBIx::FullTextSearch
+# search backend.
+eval { require DBIx::FullTextSearch; };
+my $fts_inst = $@ ? 0 : 1;
+if ($CGI::Wiki::TestConfig::config{MySQL}{dbname} and $fts_inst) {
+    print "You have DBIx::FullTextSearch installed and a MySQL store\n";
+    print "configured... configuring for test...\n\n";
+    $CGI::Wiki::TestConfig::config{dbixfts} = 1;
+} else {
+    print "Either DBIx::FullTextSearch not installed or no MySQL store\n";
+    print "configured... so won't test that...\n\n";
+    $CGI::Wiki::TestConfig::config{dbixfts} = undef;
 }
 
 # We can test the SQLite backend without asking questions, if it's installed.
@@ -141,18 +137,14 @@ if ($@) {
     $CGI::Wiki::TestConfig::config{SQLite} = { dbname => "t/sqlite-test.db" };
 }
 
-# If we have a MySQL store configured, and Search::InvertedIndex installed,
-# we can test that without asking questions.
+# If we have Search::InvertedIndex installed, we can test that without
+# asking questions.
 eval { require Search::InvertedIndex; };
 my $sii_inst = $@ ? 0 : 1;
-if ($CGI::Wiki::TestConfig::config{MySQL}{dbname} and $sii_inst) {
-    print "You have Search::InvertedIndex installed and a MySQL test\n";
-    print "database configured, so will test the S:II search backend...\n\n";
+if ( $sii_inst ) {
+    print "You have Search::InvertedIndex installed, so will test the S:II\n";
+    print "search backend...\n\n";
     $CGI::Wiki::TestConfig::config{search_invertedindex} = 1;
-} elsif ( $sii_inst ) {
-    print "You have Search::InvertedIndex installed but no MySQL test\n";
-    print "database configured; skipping test of S:II search backend...\n\n";
-    $CGI::Wiki::TestConfig::config{search_invertedindex} = undef;
 } else {
     print "You do not have Search::InvertedIndex installed; skipping test\n";
     print "of S:II search backend...\n\n";
@@ -201,6 +193,6 @@ WriteMakefile( NAME         => "CGI::Wiki",
 			         'Time::Piece' => 0,
 			         %extras },
 	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm "
-			         . "t/sqlite-test.db" }
+			         . "t/sqlite-test.db t/sii-db-file-test.db" }
 	     );
 
