@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.31';
+$VERSION = '0.32';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -227,9 +227,8 @@ sub write_node {
 
     my $store = $self->store;
     $store->check_and_write_node( %data ) or return 0;
-
     my $search = $self->{_search};
-    if ($search) {
+    if ($search and $content) {
         $search->index_node($node, $content);
     }
     return 1;
@@ -350,6 +349,9 @@ stuff, see Max Maischein's L<CGI::Wiki::Simple>, which uses
 L<CGI::Wiki> with L<CGI::Application> to get you up and running in one
 or two minutes.
 
+Or for the specialised application of a wiki about a city, see the
+L<OpenGuides> distribution.
+
 L<CGI::Wiki> allows you to use different formatting modules. 
 L<Text::WikiFormat> might be useful for anyone wanting to write a
 custom formatter. Existing formatters include:
@@ -365,8 +367,7 @@ custom formatter. Existing formatters include:
 =back
 
 There's currently a choice of three storage backends - all
-database-backed, but flat file storage coming soon, once Ingy writes
-L<CGI::Kwiki> and I can steal his code :)
+database-backed.
 
 =over 4
 
@@ -392,11 +393,15 @@ A search backend is optional:
 
 Standalone plugins can also be written - currently they should only
 read from the backend storage, but write access guidelines are coming
-soon. I've only written one plugin so far:
+soon. Plugins written so far and available from CPAN:
 
 =over 4
 
+=item * L<CGI::Wiki::Plugin::GeoCache>
+
 =item * L<CGI::Wiki::Plugin::Locator::UK>
+
+=item * L<CGI::Wiki::Plugin::RSS::ModWiki>
 
 =back
 
@@ -423,7 +428,9 @@ Other ways to implement Wikis in Perl include:
 
 =item * L<Apache::MiniWiki>
 
-=item * UseModWiki
+=item * UseModWiki L<http://usemod.com>
+
+=item * Chiq Chaq L<http://chiqchaq.sourceforge.net/>
 
 =back
 

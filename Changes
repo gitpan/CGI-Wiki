@@ -1,3 +1,8 @@
+0.32    2 May 2003
+        Fixed bug with write_node dying when using Search::InvertedIndex
+          and writing node with blank content (thanks to Bob Walker for
+          the bug report).
+
 0.31    26 April 2003
         Added an index to the metadata table in the postgres setup, to
           speed up RecentChanges.  To apply this index to an existing

@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 =head1 NAME
 
@@ -131,7 +131,7 @@ indexes.
 sub index_node {
     my ($self, $node, $content) = @_;
     croak "Must supply a node name" unless $node;
-    croak "Must supply node content" unless $content;
+    croak "Must supply node content" unless defined $content;
 
     my @keys = grep { length > 1                 # ignore single characters
                       and ! /^\W*$/ }            # and things composed entirely
