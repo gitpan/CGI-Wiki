@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.37';
+$VERSION = '0.38';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -11,7 +11,8 @@ use Digest::MD5 "md5_hex";
 use Class::Delegation
     send => ['retrieve_node', 'verify_checksum',
              'list_all_nodes', 'list_recent_changes', 'node_exists',
-             'list_backlinks', 'list_nodes_by_metadata'],
+             'list_backlinks', 'list_dangling_links',
+             'list_nodes_by_metadata'],
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
@@ -381,6 +382,8 @@ backend, if any)
 =item * list_all_nodes
 
 =item * list_backlinks
+
+=item * list_dangling_links
 
 =item * list_nodes_by_metadata
 

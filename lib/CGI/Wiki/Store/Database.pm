@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 =head1 NAME
 
@@ -268,6 +268,33 @@ sub list_backlinks {
         push @backlinks, $backlink;
     }
     return @backlinks;
+}
+
+=item B<list_dangling_links>
+
+  # List all nodes that have been linked to from other nodes but don't
+  # yet exist.
+  my @links = $store->list_dangling_links;
+
+Each node is returned once only, regardless of how many other nodes
+link to it.
+
+=cut
+
+sub list_dangling_links {
+    my $self = shift;
+    my $dbh = $self->dbh;
+    my $sql = "SELECT DISTINCT internal_links.link_to
+               FROM internal_links LEFT JOIN node
+                                   ON node.name=internal_links.link_to
+               WHERE node.version IS NULL";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute or croak $dbh->errstr;
+    my @links;
+    while ( my $link = $sth->fetchrow_array ) {
+        push @links, $link;
+    }
+    return @links;
 }
 
 =item B<write_node_after_locking>

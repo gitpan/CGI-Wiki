@@ -1,3 +1,7 @@
+0.38    17 May 2003
+        Added ->list_dangling_links method; thanks to Simon Cozens for
+          the idea.
+
 0.37    12 May 2003
         Oh dear.  No real changes, but I moved Extending.pod to stop it
           getting installed as CGI::Extending.  Sorry.
