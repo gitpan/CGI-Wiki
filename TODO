@@ -1,0 +1,12 @@
+
+- Write some stuff to take advantage of the tables having timestamps and
+  version numbers in.  Need tests to make sure that the versioning data
+  is actually going in properly.  Can do shiny things like RecentChanges
+  and reversion to previous versions with this data; I just haven't taken
+  the time to write them yet, and I don't expect them to be difficult.
+
+- A non-database store option would be nice, as would a search for the
+  postgres-based store.
+
+- Look at case-sensitivity in node names.
+

@@ -1,0 +1,175 @@
+NAME
+    CGI::Wiki - Storage, retrieval, searching and formatting of Wiki pages
+
+REQUIRES
+    Uses Text::WikiFormat and HTML::PullParser to do the HTML translation,
+    Digest::MD5 to make checksums, and Class::Delegation to avoid ugliness.
+
+DESCRIPTION
+    Helps you develop Wikis quickly by taking care of the boring bits for
+    you. The aim is to allow different types of backend storage and search
+    without you having to worry about the details.
+
+SYNOPSIS
+      my $wiki   = CGI::Wiki->new(%config); # See below for parameter details
+      my $q      = CGI->new;
+      my $action = $q->param("action");
+      my $node   = $q->param("node");
+
+      if ($action eq 'display') {
+          my $raw    = $wiki->retrieve_node($node);
+          my $cooked = $wiki->format($raw);
+          print_page(node    => $node,
+                     content => $cooked);
+      } elsif ($action eq 'preview') {
+          my $submitted_content = $q->param("content");
+          my $preview_html      = $wiki->format($submitted_content);
+          print_editform(node    => $node,
+                         content => $submitted_content,
+                         preview => $preview_html);
+      } elsif ($action eq 'commit') {
+          my $submitted_content = $q->param("content");
+          my $cksum = $q->param("checksum");
+          my $written = $wiki->write_node($node, $submitted_content, $cksum);
+          if ($written) {
+              print_success($node);
+          } else {
+              handle_conflict($node, $submitted_content);
+          }
+      }
+
+METHODS
+    new
+         my %config = ( storage_backend => 'mysql',
+                        dbname          => 'wiki',
+                        dbuser          => 'wiki',
+                        dbpass          => 'wiki',
+                        search_backend  => 'dbixfts', # defaults to undef
+                        extended_links  => 0,
+                        implicit_links  => 1,
+                        allowed_tags    => [qw(b i)], # defaults to none
+                        macros          => {},
+                        node_prefix     => 'wiki.cgi?node=' );
+
+          my $wiki = CGI::Wiki->new(%config);
+
+        Currently the only storage backends supported are "mysql" and
+        "postgres", and the only search backend supported (other than no
+        search at all) is "dbixfts", which uses the DBIx::FullTextSearch
+        module, and so can only be used with MySQL.
+
+        The parameters will default to the values shown above (apart from
+        "allowed_tags", which defaults to allowing no tags, and
+        "search_backend", which defaults to not providing any search
+        methods). (If you're using a method of database authentication that
+        doesn't require a password, then leave out "dbpass" or just put any
+        old junk in there.)
+
+        * macros - be aware that macros are processed *after* filtering out
+        disallowed HTML tags. Currently macros are just strings, maybe later
+        we can add in subs if we think it might be useful.
+
+        Macro example:
+
+          macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
+                        qq(<form action="wiki.cgi" method="get">
+                           <input type="hidden" name="action" value="search">
+                           <input type="text" size="20" name="terms">
+                           <input type="submit"></form>) }
+
+    retrieve_node_and_checksum
+          my ($content, $cksum) = $wiki->retrieve_node_and_checksum($node);
+
+        Works just like retrieve_node, but also gives you a checksum that
+        you must send back when you want to commit changes, so you can check
+        that no other changes have been committed while you were editing.
+        Currently it's just the md5sum of the node content.
+
+    format
+          my $html = $wiki->format($submitted_content);
+
+        Escapes any tags which weren't specified as allowed on creation,
+        then interpolates any macros, then calls Text::WikiFormat::format
+        (with the config set up when new was called) to translate the raw
+        Wiki language supplied into HTML.
+
+    write_node
+          my $written = $wiki->write_node($node, $content, $checksum);
+          if ($written) {
+              display_node($node);
+          } else {
+              handle_conflict();
+          }
+
+        Writes the specified content into the specified node in the backend
+        storage, and indexes/reindexes the node in the search indexes, if a
+        search is set up. Note that you can blank out a node without
+        deleting it by passing the empty string as $content, if you want to.
+
+        If you expect the node to already exist, you must supply a checksum,
+        and the node is write-locked until either your checksum has been
+        proved old, or your checksum has been accepted and your change
+        committed. If no checksum is supplied, and the node is found to
+        already exist and be nonempty, a conflict will be raised.
+
+        All parameters are mandatory. Returns 1 on success, 0 on conflict,
+        croaks on error.
+
+    Methods provided by storage backend
+        See the docs for your chosen storage backend to see how these work.
+
+        * delete_node (also calls the delete_node method in the search
+        backend, if any)
+        * list_all_nodes
+        * retrieve_node
+        * verify_checksum
+
+    Methods provided by search backend
+        See the docs for your chosen search backend to see how these work.
+
+        * search_nodes
+
+SEE ALSO
+      CGI::Wiki::Store::MySQL
+      CGI::Wiki::Store::Pg
+      CGI::Wiki::Store::Database
+      CGI::Wiki::Search::DBIxFTS
+      Text::WikiFormat
+
+    Other ways to implement Wikis in Perl include:
+
+    * CGI::pWiki
+    * AxKit::XSP::Wiki
+    * UseModWiki
+
+AUTHORS
+        Kake Pugh (kake@earth.li).
+
+FEEDBACK
+        Please send me mail and tell me what you think of this. It's my
+        first CPAN module, so stuff probably sucks. Tell me what sucks, send
+        me patches, send me tests. Or if it doesn't suck, tell me that too.
+        I love getting mail, even if all it says is "I used your thing and I
+        like it", or "I didn't use your thing because of X".
+
+        I will buy beer or cider (one pint, litre, or similarly-sized bottle
+        of, not exchangeable for lager or other girly drinks, will probably
+        need to be claimed in person in whichever city I'm in at the time)
+        for the first three people to send me such mail.
+
+CREDITS
+        Various London.pm types helped out with code review, encouragement,
+        JFDI, style advice, code snippets, module recommendations, and so
+        on; far too many to name individually, but particularly Richard
+        Clamp, Tony Fisher, Mark Fowler, and Chris Ball.
+
+        And never forget to say thanks to those who wrote the stuff that
+        your module depends on. Come claim beer or home-made cakes[0] at the
+        next YAPC, people.
+
+        [0] cakes require pre-booking
+
+GRATUITOUS PLUG
+        I'm only obsessed with Wikis because of the Open-Source Guide to
+        London -- http://grault.net/grubstreet/
+

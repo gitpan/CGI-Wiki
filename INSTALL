@@ -1,0 +1,52 @@
+HOW TO INSTALL THIS:
+
+  Mostly the same as usual; see 'perldoc perlmodinstall' if you're stuck.
+
+  'perl Makefile.PL' will ask you a few questions about which databases 
+  it can use for testing - the default is to only test what it can get 
+  away without databases for.  It is recommended that you test with as 
+  many backend combinations as your system will allow. 
+
+  Second and subsequent successful runs of 'perl Makefile.PL' will use
+  the testing setup specified in the first run.  To over-ride this, do
+  'perl Makefile.PL -s'
+
+  Better support for noninteractive installation has been requested; I'm
+  working on it, but patches are welcome.
+
+POST INSTALL:
+
+  You'll want to run one or all of the bin/user-setup-* scripts (edit the
+  database name, user and password parameters in them first) to set
+  up the database tables.  Maybe somebody will be nice and send me patches
+  to make this work more neatly.
+
+TESTING NOTES:
+
+  'perl Makefile.PL' will ask some questions about which backends to run
+  the tests for. You will need to create at least one test database
+  before you run the tests, and your test user will need to be able to
+  create and drop tables in that database.
+
+Postgres notes:
+
+  You can create a database from the shell:
+  shell$ createdb cgi_wiki_test
+
+  And give a user password access by editing pg_hba.conf (which lives
+  somewhere like /var/lib/postgres/data/pg_hba.conf) to contain the line:
+
+  local        cgi_wiki_test                            md5
+
+  Then in psql run something like:
+  postgres=# create user wiki with password 'wiki';
+
+  You can give a database to a user by using psql to update the
+  pg_database table -- the datdba UID comes from the pg_user table.)
+
+MySQL notes:
+
+  Something like "grant all privileges on cgi_wiki_test.* to
+  wiki@localhost identified by 'wiki'" will create a suitable user and
+  give it password access to, and all required privileges on the test
+  database.

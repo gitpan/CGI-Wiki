@@ -1,0 +1,5 @@
+<p align="right">
+  [<a href="wiki.cgi?node=[% node_param %]&action=edit">Edit this page</a>]
+  [<a href="wiki.cgi?node=ToDo">ToDo</a>]
+  [<a href="[% home_link %]">[% home_name %]</a>]
+</p>
