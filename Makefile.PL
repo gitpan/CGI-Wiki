@@ -194,11 +194,9 @@ if ( $config{MySQL}{dbname} ) {
 }
 if ( $config{Pg}{dbname} ) {
     $extras{'DBD::Pg'} = 0;
-    $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{SQLite}{dbname} ) {
     $extras{'DBD::SQLite'} = '0.25'; # some of my tests fail on earlier ones
-    $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{dbixfts} ) {
     $extras{'DBIx::FullTextSearch'} = '0.71'; # earlier ones buggy
@@ -211,11 +209,9 @@ WriteMakefile( NAME         => "CGI::Wiki",
 				 'HTML::PullParser' => 0,
 				 'Digest::MD5' => 0,
 			         'Test::More' => 0,
-                                 'Test::MockObject' =>'0.07',#earlier no mock()
 			         'Time::Piece' => 0,
 			         %extras },
                EXE_FILES => [ "bin/cgi-wiki-setupdb" ],
 	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm "
 			         . "t/sqlite-test.db t/sii-db-file-test.db" }
 	     );
-

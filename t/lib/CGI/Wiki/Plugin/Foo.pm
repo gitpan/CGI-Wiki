@@ -1,6 +1,5 @@
 package CGI::Wiki::Plugin::Foo;
-use vars qw( @ISA );
-@ISA = qw( CGI::Wiki::Plugin );
+use base qw( CGI::Wiki::Plugin );
 
 sub new {
     my $class = shift;

@@ -3,7 +3,7 @@ package CGI::Wiki::Plugin;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 =head1 NAME
 
@@ -18,15 +18,14 @@ registered with.
 =head1 SYNOPSIS
 
   package CGI::Wiki::Plugin::Foo;
-  use vars qw( @ISA );
-  @ISA = qw( CGI::Wiki::Plugin);
+  use base qw( CGI::Wiki::Plugin);
 
   sub new {
       my $class = shift;
       return bless {}, $class;
   }
 
-  # And then in code:
+  # And then in your script:
   my $wiki = CGI::Wiki->new( ... );
   my $plugin = CGI::Wiki::Plugin::Foo->new;
   $wiki->register_plugin( plugin => $plugin );

@@ -1,3 +1,10 @@
+0.50_01 18 November 2003
+        Huge overhaul of test suite, no change in functionality.
+        Removed dependency on Test::MockObject and Hook::LexWrap
+          (the relevant tests are now skipped if these aren't installed).
+        Removed the examples since they were very out of date.
+        Made a small clarification to the CGI::Wiki::Plugin docs.
+
 0.49    23 September 2003
         Added "ignore_case" option to ->list_nodes_by_metadata
 

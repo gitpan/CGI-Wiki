@@ -243,6 +243,7 @@ can however be useful when previewing edits, for example.
 
 sub verify_checksum {
     my ($self, $node, $checksum) = @_;
+#warn $self;
     my %node_data = $self->_retrieve_node_data( name => $node );
     return ( $checksum eq $self->_checksum( %node_data ) );
 }

@@ -2,7 +2,6 @@ use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
 use Test::More tests => (9 * $CGI::Wiki::TestConfig::Utilities::num_stores);
-use Test::MockObject;
 
 my %stores = CGI::Wiki::TestConfig::Utilities->stores;
 
@@ -45,15 +44,20 @@ while ( ($store_name, $store) = each %stores ) {
             "...but not when we specify implicit_links=0" );
 
         # Test that we can use an alternative formatter.
-        my $mock = Test::MockObject->new();
-        $mock->mock( 'format', sub { my ($self, $raw) = @_;
-                                     return uc( $raw );
-                                   }
-                    );
-        $wiki = CGI::Wiki->new( store     => $store,
-                                formatter => $mock );
-        $cooked = $wiki->format("in the [future] there will be <b>robots</b>");
-        is( $cooked, "IN THE [FUTURE] THERE WILL BE <B>ROBOTS</B>",
-            "can use an alternative formatter" );
+        SKIP: {
+            eval { require Test::MockObject; };
+            skip "Test::MockObject not installed", 1 if $@;
+            my $mock = Test::MockObject->new();
+            $mock->mock( 'format', sub { my ($self, $raw) = @_;
+                                         return uc( $raw );
+                                       }
+                        );
+            $wiki = CGI::Wiki->new( store     => $store,
+                                    formatter => $mock );
+            $cooked = $wiki->format(
+                                "in the [future] there will be <b>robots</b>");
+            is( $cooked, "IN THE [FUTURE] THERE WILL BE <B>ROBOTS</B>",
+                "can use an alternative formatter" );
+        }
     }
 }

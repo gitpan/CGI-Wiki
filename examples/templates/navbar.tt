@@ -1,5 +1,0 @@
-<p align="right">
-  [<a href="[% cgi_url %]?node=[% node_param %]&action=edit">Edit this page</a>]
-  [<a href="[% cgi_url %]?node=Recent%20Changes">Recent Changes</a>]
-  [<a href="[% home_link %]">[% home_name %]</a>]
-</p>

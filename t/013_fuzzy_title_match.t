@@ -1,32 +1,15 @@
 use strict;
-use CGI::Wiki;
-use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (5 * $CGI::Wiki::TestConfig::Utilities::num_combinations);
+use CGI::Wiki::TestLib;
+use Test::More tests => ( 5 * scalar @CGI::Wiki::TestLib::wiki_info );
 
-my @tests = CGI::Wiki::TestConfig::Utilities->combinations;
-foreach my $configref (@tests) {
-    my %testconfig = %$configref;
-    my ( $store_name, $store, $search_name, $search, $configured ) =
-        @testconfig{qw(store_name store search_name search configured)};
+my $iterator = CGI::Wiki::TestLib->new_wiki_maker;
 
+while ( my $wiki = $iterator->new_wiki ) {
     SKIP: {
-        my $num_tests = 5;
-        skip "Store $store_name and search $search_name"
-	   . " not configured for testing", $num_tests unless $configured;
-
-        skip "No search backend in this combination",
-           $num_tests
-             unless $search;
-
-        skip "Search backend $search_name doesn't support fuzzy searching",
-           $num_tests
-             unless $search->can("fuzzy_title_match");
-
-        print "#####\n##### Test config: STORE: $store_name, SEARCH: "
-	   . $search_name . "\n#####\n";
-
-        my $wiki = CGI::Wiki->new( store  => $store,
-                                   search => $search );
+        my $search = $wiki->search_obj;
+        skip "No search backend in this combination", 5 unless $search;
+        skip "Search backend doesn't support fuzzy searching", 5
+            unless $search->can("fuzzy_title_match");
 
         # Fuzzy match with differing punctuation.
         $wiki->write_node( "King's Cross St Pancras", "station" )
@@ -54,12 +37,5 @@ foreach my $configref (@tests) {
         is( $@, "", "fuzzy_title_match works when called on wiki object" ); 
         is_deeply( [ keys %finds ], [ "King's Cross St Pancras" ],
                    "...and returns the right thing" );
-
-        # Cleanup
-        foreach my $node ( "King's Cross St Pancras", "Potato",
-                           "Patty" ) {
-            $wiki->delete_node( $node ) or die "Couldn't cleanup $node";
-        }
     }
 }
-

@@ -1,20 +1,13 @@
 use strict;
-use CGI::Wiki;
-use CGI::Wiki::TestConfig::Utilities;
-use Test::MockObject;
-use Test::More tests => (9 * $CGI::Wiki::TestConfig::Utilities::num_stores);
+use CGI::Wiki::TestLib;
+use Test::More tests => ( 9 * scalar @CGI::Wiki::TestLib::wiki_info );
 
-my %stores = CGI::Wiki::TestConfig::Utilities->stores;
+my $iterator = CGI::Wiki::TestLib->new_wiki_maker;
 
-my ($store_name, $store);
-while ( ($store_name, $store) = each %stores ) {
+while ( my $wiki = $iterator->new_wiki ) {
     SKIP: {
-            skip "$store_name storage backend not configured for testing", 9
-                unless $store;
-
-        print "#####\n##### Test config: STORE: $store_name\n#####\n";
-
-        my $wiki = CGI::Wiki->new( store => $store );
+        eval { require Test::MockObject; };
+        skip "Test::MockObject not installed", 9 if $@;
 
         my $null_plugin = Test::MockObject->new;
 
@@ -58,12 +51,12 @@ while ( ($store_name, $store) = each %stores ) {
                            }
         );
 
-        $wiki->write_node( "041 Test Node 1", "foo", undef, {bar => "baz"} )
+        $wiki->write_node( "Test Node", "foo", undef, {bar => "baz"} )
             or die "Can't write node";
         ok( $plugin->called("post_write"), "->post_write method called" );
 
         my @seen = @{ $plugin->{__seen_nodes} };
-        is_deeply( $seen[0], { name => "041 Test Node 1",
+        is_deeply( $seen[0], { name => "Test Node",
                                version => 1,
                                content => "foo",
                                metadata => { bar => "baz" } },
