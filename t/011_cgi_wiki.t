@@ -1,7 +1,7 @@
 local $^W = 1;
 use strict;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (5 + 57*$CGI::Wiki::TestConfig::Utilities::num_combinations);
+use Test::More tests => (5 + 48*$CGI::Wiki::TestConfig::Utilities::num_combinations);
 use Test::Warn;
 
 ##### Test whether we can be 'use'd with no warnings.
@@ -34,7 +34,7 @@ foreach my $configref (@tests) {
         @testconfig{qw(store_name store search_name search configured)};
     SKIP: {
         skip "Store $store_name and search $search_name"
-	   . " not configured for testing", 57 unless $configured;
+	   . " not configured for testing", 48 unless $configured;
 
         print "#####\n##### Test config: STORE: $store_name, SEARCH: "
 	   . $search_name . "\n#####\n";
@@ -174,6 +174,10 @@ foreach my $configref (@tests) {
 
         ##### Test writing to existing nodes.
         %node_data = $wiki->retrieve_node("Everyone's Favourite Hobby");
+	my $slept = sleep(2);
+	warn "Slept for less than a second, 'lastmod' test may fail"
+	  unless $slept >= 1;
+
         ok( $wiki->write_node("Everyone's Favourite Hobby",
 			      "xx", $node_data{checksum}),
 	    "write_node succeeds when node matches checksum" );
@@ -262,92 +266,6 @@ foreach my $configref (@tests) {
         is( $@, "", "doesn't die when writing a node that links to the same place twice" );
 
         $wiki->delete_node("Multiple Backlink Test") or die "Couldn't cleanup";
-
-	##### Test recent_changes (must do this as the last in each batch
-        ##### of tests since some tests involve writing, and some configs
-        ##### re-use the same database (eg mysql-nosearch, mysql-dbixfts)
-        # The tests in this file will write to the following nodes:
-        #   Another Node, Everyone's Favourite Hobby, Node1
-
-        # Test by "in last n days".
-	my $slept = sleep(2);
-	warn "Slept for less than a second, 'in last n days' test may fail"
-	  unless $slept >= 1;
-        foreach my $node ("Node1", "Everyone's Favourite Hobby",
-			  "Another Node") { # note the order
-            %node_data = $wiki->retrieve_node($node);
-            $wiki->write_node($node, @node_data{ qw(content checksum) });
-            my $slept = sleep(2);
-            warn "Slept for less than a second, 'right order' test may fail"
-              unless $slept >= 1;
-	}
-
-        my @nodes = $wiki->list_recent_changes( days => 1 );
-        my @nodenames = map { $_->{name} } @nodes;
-        my %unique = map { $_ => 1 } @nodenames;
-        is_deeply( [sort keys %unique],
-		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
-		   "recent_changes for last 1 day gets the right results" );
-
-        is( scalar @nodenames, 3,
-            "...only once per node however many times changed" );
-
-        is_deeply( \@nodenames,
-		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
-		   "...in the right order" ); # returns in reverse chron. order
-
-        # Test by "last n nodes changed".
-        @nodes = $wiki->list_recent_changes( last_n_changes => 2 );
-        @nodenames = map { $_->{name} } @nodes;
-        print "# Found nodes: " . join(" ", @nodenames) . "\n";
-        is_deeply( \@nodenames,
-		   ["Another Node", "Everyone's Favourite Hobby"],
-                   "recent_changes 'last_n_changes' works" );
-        eval { $wiki->list_recent_changes( last_n_changes => "foo" ); };
-        ok( $@, "...and croaks on bad input" );
-
-        # Test by "since time T".
-        my $time = time;
-	$slept = sleep(2);
-	warn "Slept for less than a second, 'since' test may fail"
-	  unless $slept >= 1;
-        %node_data = $wiki->retrieve_node("Node1");
-	$wiki->write_node("Node1", @node_data{qw( content checksum )});
-        @nodes = $wiki->list_recent_changes( since => $time );
-	@nodenames = map { $_->{name} } @nodes;
-        is_deeply( \@nodenames, ["Node1"],
-		   "recent_changes 'since' returns the right results" );
-        ok( $nodes[0]{last_modified},
-	    "...and a plausible (not undef or empty) last_modified timestamp");
-
-      SKIP: {
-        skip "TODO", 2;
-
-        # Test by "last n nodes added".
-        foreach my $node ("Temp Node 1", "Temp Node 2", "Temp Node 3") {
-            $wiki->write_node($node, "foo");
-            my $slept = sleep(2);
-            warn "Slept for less than a second, 'last n added' test may fail"
-              unless $slept >= 1;
-	}
-        @nodes = $wiki->list_recent_changes( last_n_added => 2 );
-	@nodenames = map { $_->{name} } @nodes;
-        is_deeply( \@nodenames, ["Temp Node 3", "Temp Node 2"],
-                   "last_n_added works" );
-        my $slept = sleep(2);
-            warn "Slept for less than a second, 'last n added' test may fail"
-              unless $slept >= 1;
-        %node_data = $wiki->retrieve_node("Temp Node 1");
-	$wiki->write_node("Temp Node1", @node_data{qw( content checksum )});
-        @nodes = $wiki->list_recent_changes( last_n_added => 2 );
-	@nodenames = map { $_->{name} } @nodes;
-        is_deeply( \@nodenames, ["Temp Node 3", "Temp Node 2"],
-                   "...still works when we've written to an older node" );
-
-        foreach my $node ("Temp Node 1", "Temp Node 2", "Temp Node 3") {
-            $wiki->delete_node($node) or die "Couldn't clean up";
-        }
-      }
 
     }
 }

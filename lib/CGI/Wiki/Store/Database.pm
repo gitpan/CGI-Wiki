@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 =head1 NAME
 
@@ -436,7 +436,7 @@ sub delete_node {
   my @nodes = $store->list_recent_changes( last_n_changes => 1 );
   print "Node:          $nodes[0]{name}";
   print "Last modified: $nodes[0]{last_modified}";
-  print "Comment:       $nodes[0]{comment}";
+  print "Comment:       $nodes[0]{metadata}{comment}";
 
 
 Returns results as an array, in reverse chronological order.  Each
@@ -446,15 +446,22 @@ element of the array is a reference to a hash with the following entries:
 
 =item * B<name>: the name of the node
 
+=item * B<version>: the latest version number
+
 =item * B<last_modified>: the timestamp of when it was last modified
 
-=item * B<comment>: the comment (if any) that was attached to the node
-last time it was modified
+=item * B<metadata>: a ref to a hash containing any metadata attached
+to the current version of the node
 
 =back
 
-Note that adding comments isn't implemented properly yet, so those
-will always be the blank string at the moment.
+Each node will only be returned once, regardless of how many times it
+has been changed recently.
+
+B<Note:> interface change between L<CGI::Wiki> 0.23 and 0.24 - this
+method used to pretend to return a comment, which was always the blank
+string. It now returns the metadata hashref, so you can put your
+comments in that.
 
 =cut
 
@@ -481,14 +488,15 @@ sub _find_recent_changes_by_criteria {
     my ( $since, $limit ) = @args{ qw( since limit ) };
     my $dbh = $self->dbh;
 
-    my @where = ( "node.name=content.name", "node.version=content.version" );
+    my @where;
     if ( $since ) {
         my $timestamp = $self->_get_timestamp( $since );
         push @where, "node.modified >= " . $dbh->quote($timestamp);
     }
 
-    my $sql = "SELECT node.name, node.modified, content.comment
-               FROM node, content WHERE " . join(" AND ", @where)
+    my $sql = "SELECT node.name, node.version, node.modified
+               FROM node " . ( scalar @where ? " WHERE " . join(" AND ",@where)
+			                     : "" )
             . " ORDER BY node.modified DESC";
     if ( $limit ) {
         croak "Bad argument $limit" unless $limit =~ /^\d+$/;
@@ -496,10 +504,25 @@ sub _find_recent_changes_by_criteria {
     }
 
     my $nodesref = $dbh->selectall_arrayref($sql);
-    return map { { name          => $_->[0],
-		   last_modified => $_->[1],
-                   comment       => $_->[2] }
-               } @$nodesref;
+    my @finds = map { { name          => $_->[0],
+			version       => $_->[1],
+			last_modified => $_->[2] }
+		    } @$nodesref;
+    foreach my $find ( @finds ) {
+        my %metadata;
+        my $sth = $dbh->prepare( "SELECT metadata_type, metadata_value
+                                  FROM metadata WHERE node=? AND version=?" );
+        $sth->execute( $find->{name}, $find->{version} );
+        while ( my ($type, $value) = $sth->fetchrow_array ) {
+	    if ( defined $metadata{$type} ) {
+                push @{$metadata{$type}}, $value;
+	    } else {
+                $metadata{$type} = [ $value ];
+            }
+	}
+        $find->{metadata} = \%metadata;
+    }
+    return @finds;
 }
 
 =item B<list_all_nodes>

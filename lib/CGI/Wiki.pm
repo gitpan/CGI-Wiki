@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.23';
+$VERSION = '0.24';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -29,17 +29,17 @@ Helps you develop Wikis quickly by taking care of the boring bits for
 you. The aim is to allow different types of backend storage and search
 without you having to worry about the details.
 
+=head1 NOTE WHEN UPGRADING FROM PRE-0.24 VERSIONS
+
+There was a small interface change to C<list_recent_changes> between
+versions 0.23 and 0.24 - see the 'Changes' file for details.
+
 =head1 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
 
 The database schema changed between versions 0.14 and 0.15, and again
 between versions 0.16 and 0.20 - see the 'Changes' file for details. 
 This is really kinda important, please do check this out or your code
 will die when it tries to use any existing databases.
-
-=head1 NOTE WHEN UPGRADING FROM PRE-0.10 VERSIONS
-
-There was a small interface change between versions 0.05 and 0.10 -
-see the 'Changes' file for details.
 
 =head1 SYNOPSIS
 

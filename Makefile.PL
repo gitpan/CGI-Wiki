@@ -173,7 +173,7 @@ if ( $config{Pg}{dbname} ) {
     $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{SQLite}{dbname} ) {
-    $extras{'DBD::SQLite'} = '0.21'; # to make sure of the right DBI->errstr
+    $extras{'DBD::SQLite'} = '0.25'; # some of my tests fail on earlier ones
     $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{dbixfts} ) {

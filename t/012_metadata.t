@@ -76,5 +76,10 @@ while ( ($store_name, $store) = each %stores ) {
         %node = $wiki->retrieve_node( "Dupe Test" );
         is( $node{version}, 2, "version updated when metadata removed" );
 
+        # Clean up
+	foreach my $node ( "Reun Thai", "The Old Trout", "The Three Cups",
+			   "Dupe Test" ) {
+	    $wiki->delete_node($node) or die "Can't cleanup";
+	}
     }
 }

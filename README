@@ -15,6 +15,10 @@ will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
 
+0.24    29 March 2003
+        list_recent_changes now returns any metadata attached to the node
+          as well - 'perldoc CGI::Wiki::Store::Database' for details.
+
 0.22    8 March 2003
         Rejig of the way the tests work, in preparation for allowing
           third-party plugins.  'perldoc CGI::Wiki::TestConfig::Utilities'

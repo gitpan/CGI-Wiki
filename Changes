@@ -1,3 +1,11 @@
+0.24    29 March 2003
+        list_recent_changes now returns any metadata attached to the node
+          as well - so you can put comments and usernames and things in there
+          and display them on RecentChanges.  Note that it no longer pretends
+          to return a comment separately since you can do it this way now.
+          See perldoc CGI::Wiki::Store::Database for the new API.
+        Moved recent changes tests out into their own file.
+
 0.23    17 March 2003
         Fixed bug - metadata wasn't getting deleted when ->delete_node
           was called.
