@@ -2,12 +2,10 @@
 
 use strict;
 use Getopt::Long;
-use CGI::Wiki::Setup::Pg;
+use CGI::Wiki::Setup::SQLite;
 
-my ($dbname, $dbuser, $dbpass, $help);
+my ($dbname, $help);
 GetOptions("name=s" => \$dbname,
-           "user=s" => \$dbuser,
-           "pass=s" => \$dbpass,
            "help"   => \$help);
 
 unless (defined($dbname)) {
@@ -21,36 +19,26 @@ if ($help) {
     exit 0;
 }
 
-CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass);
+CGI::Wiki::Setup::SQLite::setup($dbname);
 
 =head1 NAME
 
-user-setup-postgres - set up a Postgres storage backend for CGI::Wiki
+user-setup-sqlite - set up a SQLite storage backend for CGI::Wiki
 
 =head1 SYNOPSIS
 
-  user-setup-postgres --name mywiki \
-                      --user wiki  \
-                      --pass wiki  \
+  user-setup-sqlite --name mywiki
 
 =head1 DESCRIPTION
 
-Takes three arguments:
+Takes one argument:
 
 =over 4
 
 =item name
 
-The database name.
-
-=item user
-
-The user that connects to the database. It must have permission
-to create and drop tables in the database.
-
-=item pass
-
-The user's database password.
+The name of the file to store the SQLite database in.  It will be
+created if it doesn't already exist.
 
 =head1 AUTHOR
 
@@ -65,7 +53,7 @@ under the same terms as Perl itself.
 
 =head1 SEE ALSO
 
-L<CGI::Wiki>, L<CGI::Wiki::Setup::Pg>
+L<CGI::Wiki>, L<CGI::Wiki::Setup::SQLite>
 
 =cut
 

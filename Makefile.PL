@@ -129,17 +129,27 @@ if ($CGI::Wiki::TestConfig::configured
 
     # Copy the config hash to the right namespace.
     %CGI::Wiki::TestConfig::config = %config;
-
-    # Write out the config for next run.
-    open OUT, ">lib/CGI/Wiki/TestConfig.pm"
-       or die "Couldn't open lib/CGI/Wiki/TestConfig.pm for writing: $!";
-    # warning - blind copy and paste follows.  FIXME.
-    print OUT Data::Dumper->new([ \%CGI::Wiki::TestConfig::config ],
-                                [ '*CGI::Wiki::TestConfig::config' ]
-                               )->Dump,
-        "\$CGI::Wiki::TestConfig::configured = 1;\n1;\n";
-    close OUT;
 }
+
+# We can test the SQLite backend without asking questions, if it's installed.
+eval { require DBD::SQLite; };
+if ($@) {
+    print "DBD::SQLite not installed... so won't test that...\n\n";
+    $CGI::Wiki::TestConfig::config{SQLite} = { dbname => undef };
+} else {
+    print "You have DBD::SQLite... configuring test SQLite database...\n\n";
+    $CGI::Wiki::TestConfig::config{SQLite} = { dbname => "t/sqlite-test.db" };
+}
+
+# Write out the config for next run.
+open OUT, ">lib/CGI/Wiki/TestConfig.pm"
+  or die "Couldn't open lib/CGI/Wiki/TestConfig.pm for writing: $!";
+# warning - blind copy and paste follows.  FIXME.
+print OUT Data::Dumper->new([ \%CGI::Wiki::TestConfig::config ],
+			    [ '*CGI::Wiki::TestConfig::config' ]
+			   )->Dump,
+  "\$CGI::Wiki::TestConfig::configured = 1;\n1;\n";
+close OUT;
 
 # Some modules are only prerequisites if we intend to test a
 # particular backend.
@@ -152,6 +162,9 @@ if ( $config{Pg}{dbname} ) {
     $extras{'DBD::Pg'} = 0;
     $extras{'Test::MockObject'} = '0.07'; # earlier ones don't have mock()
     $extras{'Hook::LexWrap'} = 0;
+}
+if ( $config{sqlite} ) {
+    $extras{'DBD::SQLite'} = 0;
 }
 if ( $config{dbixfts} ) {
     $extras{'DBIx::FullTextSearch'} = '0.71'; # earlier ones buggy
@@ -168,6 +181,7 @@ WriteMakefile( NAME         => "CGI::Wiki",
 			         'Class::Delegation' => 0,
 			         'Time::Piece' => 0,
 			         %extras },
-	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm" }
+	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm "
+			         . "t/sqlite-test.db" }
 	     );
 

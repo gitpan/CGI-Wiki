@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -11,8 +11,8 @@ use Text::WikiFormat as => 'wikiformat';
 use HTML::PullParser;
 use Digest::MD5 "md5_hex";
 use Class::Delegation
-    send => ['retrieve_node', 'verify_checksum', 'list_all_nodes',
-	     'list_recent_changes'],
+    send => ['retrieve_node', 'retrieve_node_and_checksum', 'verify_checksum',
+             'list_all_nodes', 'list_recent_changes'],
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
@@ -84,10 +84,10 @@ without you having to worry about the details.
 
   my $wiki = CGI::Wiki->new(%config);
 
-Currently the only storage backends supported are C<mysql> and
-C<postgres>, and the only search backend supported (other than no
-search at all) is C<dbixfts>, which uses the DBIx::FullTextSearch
-module, and so can only be used with MySQL.
+Currently the only storage backends supported are C<mysql>,
+C<postgres>, and C<sqlite>; and the only search backend supported
+(other than no search at all) is C<dbixfts>, which uses the
+DBIx::FullTextSearch module, and so can only be used with MySQL.
 
 The parameters will default to the values shown above (apart from
 C<allowed_tags>, which defaults to allowing no tags, and
@@ -164,6 +164,13 @@ sub _init {
 		   checksum_method => \&md5_hex        )
             };
         croak "Failed to connect to storage backend $store_type: $@" if $@;
+    } elsif ($store_type eq "sqlite") {
+        require CGI::Wiki::Store::SQLite;
+        eval { $self->{_store} = CGI::Wiki::Store::SQLite->new(
+                   dbname => $self->{_dbname},
+		   checksum_method => \&md5_hex        )
+            };
+        croak "Failed to connect to storage backend $store_type: $@" if $@;
     } else {
         croak "Storage backend '$store_type' is not currently supported";
     }
@@ -185,24 +192,6 @@ sub _init {
     }
 
     return $self;
-}
-
-=item B<retrieve_node_and_checksum>
-
-  my ($content, $cksum) = $wiki->retrieve_node_and_checksum($node);
-
-Works just like retrieve_node, but also gives you a checksum that
-you must send back when you want to commit changes, so you can check that
-no other changes have been committed while you were editing.  Currently
-it's just the md5sum of the node content.
-
-=cut
-
-sub retrieve_node_and_checksum {
-    my ($self, $node) = @_;
-    my $content = $self->retrieve_node($node);
-    my $checksum = md5_hex($content);
-    return ($content, $checksum);
 }
 
 =item B<format>
@@ -313,6 +302,8 @@ backend, if any)
 =item * list_recent_changes
 
 =item * retrieve_node
+
+=item * retrieve_node_and_checksum (deprecated)
 
 =item * verify_checksum
 

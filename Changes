@@ -1,3 +1,16 @@
+0.04    17 November 2002
+        Added a DBD::SQLite storage backend (thanks to blair christensen
+          for a patch that makes up part of this).
+        Added tests and docs for retrieval of old versions of pages
+          (bad Kake, should have written those before implementing the
+           feature; blair and Richard shamed me into getting it sorted now).
+        retrieve_node_and_checksum is now deprecated -- retrive_node is
+          more clever and will return content only or a hash with content
+          plus meta-data, according to context.  So you should get at the
+          checksum via that.
+        user-setup-postgres.pl was buggy, fixed now.
+        Only two beer rewards now remain.
+
 0.03    9 November 2002
         Forgot to regenerate and add the README (I've put it in the
         MANIFEST now to stop that happening again).  Also forgot to

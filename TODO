@@ -2,26 +2,24 @@
 - The instructions in INSTALL are pretty complicated.  An easier procedure
   or better docs would be good.
 
-- Change retrieve_node and retrieve_node_and_checksum so they can return
-  metadata like last_modified as well as the actual content.
+- The formatting string for the modification time is now visible as
+  $CGI::Wiki::Store::Database::timestamp_fmt -- I did this to make testing
+  easier, should now think about the implications of it and consider
+  documenting it.
 
-- The modification times are stored in the database as date types -- this
-  is a bit of a pain though since I need to generate a timestamp when
-  storing things, and when I'm retrieving them I'm stuck with the way
-  that the database outputs it unless I munge it myself.  But there would be
-  portability issues (eg if moving the data to a machine with a different
-  timezone or epoch) if I just stored the number of seconds since the
-  epoch, as an integer.  This isn't really a TODO item, actually, it's
-  more of a wonder and a babble.
+- Consolidate the user-setup-* scripts into a single one for all database
+  backends, with an extra option for the type of store to set up.
 
-- I need more tests for the version and last_modified data being stored
-  and retrieved properly.
+- Consolidate the test data into a single file, call $dbh->quote on it
+  within the setup tests.
 
-- A non-database store option would be nice, as would a search for the
-  postgres-based store.
+- Implement a search for the postgres and SQLite storage backends
+  (Search::InverseIndex?)
+
+- Make a usemod flatfile backend, or write a script to convert to and
+  from that format.
 
 - Look at case-sensitivity in node names.
 
-- Make the macro feature more powerful so you can do eg
-    @IMAGE http://www.earth.li/~kake/Images/kateweb.gif
-  and it'll inline it.
+- Make the macro feature more powerful.  blair christensen pointed me
+  at PhpWiki's "plugin" functionality, which looks very cool.

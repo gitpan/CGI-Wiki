@@ -1,18 +1,19 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 12;
+use Test::More tests => 18;
 use Digest::MD5 "md5_hex";
 use CGI::Wiki::TestConfig;
 
 my @databases;
-push @databases, "MySQL" if $CGI::Wiki::TestConfig::config{MySQL}{dbname};
-push @databases, "Pg"    if $CGI::Wiki::TestConfig::config{Pg}{dbname};
+push @databases, "MySQL"  if $CGI::Wiki::TestConfig::config{MySQL}{dbname};
+push @databases, "Pg"     if $CGI::Wiki::TestConfig::config{Pg}{dbname};
+push @databases, "SQLite" if $CGI::Wiki::TestConfig::config{SQLite}{dbname};
 
 SKIP: {
-    skip "No databases configured for testing", 12 unless @databases;
+    skip "No databases configured for testing", 18 unless @databases;
 
-    foreach my $db (qw(MySQL Pg)) {
+    foreach my $db (qw(MySQL Pg SQLite)) {
         my %config = %{$CGI::Wiki::TestConfig::config{$db}};
         SKIP: {
 	    skip "$db backend not configured for testing", 6
@@ -34,7 +35,6 @@ SKIP: {
 	    ok( $store->dbh, "...and has set up a database handle" );
 	    ok( $store->retrieve_node("Home"),
 		"...and we can retrieve a node" );
-
 	}
     }
 }

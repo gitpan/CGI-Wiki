@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 104;
+use Test::More tests => 171;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -9,6 +9,12 @@ use CGI::Wiki::TestConfig;
 BEGIN {
   warnings_are { use_ok('CGI::Wiki') } [], "CGI::Wiki raised no warnings";
 };
+
+##### Test failed creation.
+eval { CGI::Wiki->new( storage_backend => "ijustmadethisup" );
+     };
+ok( $@, "Failed creation dies" );
+
 
 # Test for each configured pair: $storage_backend, $search_backend.
 my %config = %CGI::Wiki::TestConfig::config;
@@ -28,6 +34,10 @@ push @tests, { store  => "postgres",
 	       search => undef,
 	       config => $config{Pg},
 	       do     => ( $config{Pg}{dbname} ? 1 : 0 ) };
+push @tests, { store  => "sqlite",
+	       search => undef,
+	       config => $config{SQLite},
+	       do     => ( $config{SQLite}{dbname} ? 1 : 0 ) };
 
 foreach my $configref (@tests) {
     my %testconfig = %$configref;
@@ -35,13 +45,7 @@ foreach my $configref (@tests) {
     SKIP: {
         skip "Store $storage_backend and search "
 	   . ( defined $search_backend ? $search_backend : "undef" )
-	   . " not configured for testing", 34 unless $testconfig{do};
-
-        ##### Test failed creation.
-        eval { CGI::Wiki->new( dbname => "thisdatabaseshouldnotexist",
-			       storage_backend => $storage_backend );
-        };
-        ok( $@, "Failed creation dies" );
+	   . " not configured for testing", 42 unless $testconfig{do};
 
 	##### Grab working db/user/pass.
 	my $dbname = $testconfig{config}{dbname};
@@ -62,6 +66,19 @@ foreach my $configref (@tests) {
             "retrieve_node can retrieve a node correctly" );
         eval { $wiki->retrieve_node; };
         ok( $@, "...and dies if we don't tell it a node parameter" );
+        is( $wiki->retrieve_node(name => "Node1"), "This is Node1.",
+            "...still works if we supply params as a hash" );
+        is( $wiki->retrieve_node(name => "Node1", version => 1),
+	    "This is Node1.",
+            "...still works if we supply a version param" );
+
+        ##### Test retrieving a node with meta-data.
+        my %node_data = $wiki->retrieve_node("Node1");
+        is( $node_data{content}, "This is Node1.",
+	    "...still works if we request a hash" );
+        foreach (qw( last_modified version checksum )) {
+            ok( defined $node_data{$_}, "...and $_ is defined" );
+	}
 
         ##### Test writing to a new node.
         ok( $wiki->write_node("New Node", "New Node content."),
@@ -145,39 +162,51 @@ foreach my $configref (@tests) {
 	}
 
         ##### Test writing to existing nodes.
-        my ($content, $checksum) =
-            $wiki->retrieve_node_and_checksum("Everyone's Favourite Hobby");
-        ok( $wiki->write_node("Everyone's Favourite Hobby", "xx", $checksum),
+        %node_data = $wiki->retrieve_node("Everyone's Favourite Hobby");
+        ok( $wiki->write_node("Everyone's Favourite Hobby",
+			      "xx", $node_data{checksum}),
 	    "write_node succeeds when node matches checksum" );
-
-        ok( ! $wiki->write_node("Everyone's Favourite Hobby", "xx", $checksum),
+        ok( ! $wiki->write_node("Everyone's Favourite Hobby",
+				"foo", $node_data{checksum}),
 	    "...and flags when it doesn't" );
+        my %new_node_data = $wiki->retrieve_node("Everyone's Favourite Hobby");
+        print "# version now: [$new_node_data{version}]\n";
+        is( $new_node_data{version}, $node_data{version} + 1,
+	    "...and the version number is updated on successful writing" );
+        my $lastmod = Time::Piece->strptime($new_node_data{last_modified},
+			           $CGI::Wiki::Store::Database::timestamp_fmt);
+	my $prev_lastmod = Time::Piece->strptime($node_data{last_modified},
+ 				   $CGI::Wiki::Store::Database::timestamp_fmt);
+        print "# [$lastmod] [$prev_lastmod]\n";
+	ok( $lastmod > $prev_lastmod, "...as is last_modified" );
+        my $old_content = $wiki->retrieve_node(
+	    name    => "Everyone's Favourite Hobby",
+	    version => 2 );
+        is( $old_content, "xx", "...and old versions are still available" );
 
         # Cleanup for next test run.
-        $wiki->delete_node("Everyone's Favourite Hobby");
         $wiki->write_node("Everyone's Favourite Hobby",
-        		  "Performing expert wombat defenestration.")
+        		  "Performing expert wombat defenestration.",
+                          $new_node_data{checksum})
             or die "Couldn't cleanup";
 
         ##### Test retrieving with checksums.
-        ($content, $checksum) =
-                     $wiki->retrieve_node_and_checksum("Another Node");
-        ok( $checksum, "retrieve_node_and_checksum does return a checksum" );
-        is( $content, $wiki->retrieve_node("Another Node"),
-            "...and the correct content" );
-        ok( $wiki->verify_checksum("Another Node", $checksum),
+        %node_data = $wiki->retrieve_node("Another Node");
+        ok( $node_data{checksum}, "retrieve_node does return a checksum" );
+        is( $node_data{content}, $wiki->retrieve_node("Another Node"),
+            "...and the same content as when called in scalar context" );
+        ok( $wiki->verify_checksum("Another Node", $node_data{checksum}),
             "...and verify_checksum is happy with the checksum" );
 
         $wiki->write_node("Another Node",
                          'This node exists solely to contain the word "home".',
-			  $checksum) or die "Couldn't cleanup";
-        ok( $wiki->verify_checksum("Another Node", $checksum),
+			  $node_data{checksum}) or die "Couldn't cleanup";
+        ok( $wiki->verify_checksum("Another Node", $node_data{checksum}),
            "...still happy when we write node again with exact same content" );
 
-        ($content, $checksum) =
-	    $wiki->retrieve_node_and_checksum("Another Node");
-        $wiki->write_node("Another Node", "foo bar wibble", $checksum);
-        ok( ! $wiki->verify_checksum("Another Node", $checksum),
+        $wiki->write_node("Another Node", "foo bar wibble",
+			  $node_data{checksum});
+        ok( ! $wiki->verify_checksum("Another Node", $node_data{checksum}),
             "...but not once we've changed the node content" );
 
         # Cleanup for next test run.
@@ -193,8 +222,8 @@ foreach my $configref (@tests) {
         #   Another Node, Everyone's Favourite Hobby, Node1
         foreach my $node ("Node1", "Everyone's Favourite Hobby",
 			  "Another Node") { # note the order
-            my ($content, $cksum) = $wiki->retrieve_node_and_checksum($node);
-            $wiki->write_node($node, $content, $cksum);
+            %node_data = $wiki->retrieve_node($node);
+            $wiki->write_node($node, @node_data{ qw(content checksum) });
             my $slept = sleep(2);
             warn "Slept for less than a second, 'right order' test may fail"
               unless $slept >= 1;
@@ -218,8 +247,8 @@ foreach my $configref (@tests) {
 	my $slept = sleep(2);
 	warn "Slept for less than a second, 'since' test may fail"
 	  unless $slept >= 1;
-        ($content, $checksum) = $wiki->retrieve_node_and_checksum("Node1");
-	$wiki->write_node("Node1", $content, $checksum);
+        %node_data = $wiki->retrieve_node("Node1");
+	$wiki->write_node("Node1", @node_data{qw( content checksum )});
         @nodes = $wiki->list_recent_changes( since => $time );
 	@nodenames = map { $_->{name} } @nodes;
         is_deeply( \@nodenames, ["Node1"],

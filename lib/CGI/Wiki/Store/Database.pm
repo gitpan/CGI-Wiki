@@ -2,8 +2,9 @@ package CGI::Wiki::Store::Database;
 
 use strict;
 
-use vars qw( $VERSION );
-$VERSION = 0.02;
+use vars qw( $VERSION $timestamp_fmt);
+$VERSION = 0.03;
+$timestamp_fmt = "%Y-%m-%d %H:%M:%S";
 
 use DBI;
 use Time::Piece;
@@ -15,16 +16,12 @@ use Carp qw(croak);
 CGI::Wiki::Store::Database - parent class for database storage backends
 for CGI::Wiki
 
-=head1 REQUIRES
-
-Time::Piece for making timestamps.
-
 =head1 SYNOPSIS
 
 Can't see yet why you'd want to use the backends directly, but:
 
   # See below for parameter details.
-  my $backend = CGI::Wiki::Store::MySQL->new( %config );
+  my $store = CGI::Wiki::Store::MySQL->new( %config );
 
 =head1 METHODS
 
@@ -56,7 +53,8 @@ sub _init {
 
     # Store parameters.
     foreach ( qw(dbname dbuser checksum_method) ) {
-        $self->{"_$_"} = $args{$_} or die "Must supply a value for $_";
+        die "Must supply a value for $_" unless defined $args{$_};
+        $self->{"_$_"} = $args{$_};
     }
     ref $self->{_checksum_method} eq "CODE"
         or die "Must supply a coderef for checksum_method";
@@ -77,26 +75,72 @@ sub _init {
 
 =item B<retrieve_node>
 
-  my $content = $backend->retrieve_node($node);
+  my $content = $store->retrieve_node($node);
 
-Returns the current (raw Wiki language) contents of the specified node.
-The node parameter is mandatory.
+  # Or get additional meta-data too.
+  my %node = $backend->retrieve_node("HomePage");
+  print "Current Version: " . $node{version};
+
+  # Or get an earlier version:
+  my %node = $backend->retrieve_node(name    => "HomePage",
+			             version => 2 );
+  print $node{content};
+
+In scalar context, returns the current (raw Wiki language) contents of
+the specified node. In list context, returns a hash containing the
+contents of the node plus metadata: last_modified, version, checksum.
+
+The node parameter is mandatory. The version parameter is optional and
+defaults to the newest version. If the node hasn't been created yet,
+it is considered to exist but be empty (this behaviour might change).
 
 =cut
 
 sub retrieve_node {
-    my ($self, $node) = @_;
-    croak "No valid node name supplied" unless $node;
+    my $self = shift;
+    my %args = scalar @_ == 1 ? ( name => $_[0] ) : @_;
+    croak "No valid node name supplied" unless $args{name};
     my $dbh = $self->dbh;
-    my $sql = "SELECT text FROM node WHERE name=" . $dbh->quote($node);
-    my $arrayref = $dbh->selectcol_arrayref($sql)
-        or die "Can't get content from database: " . DBI->errstr;
-    return $arrayref->[0] || "";
+    my $sql;
+    if ( $args{version} ) {
+        $sql = "SELECT text, version, modified FROM content"
+             . " WHERE  name=" . $dbh->quote($args{name})
+             . " AND version=" . $dbh->quote($args{version});
+    } else {
+        $sql = "SELECT text, version, modified FROM node
+                WHERE name=" . $dbh->quote($args{name});
+    }
+    my @results = $dbh->selectrow_array($sql);
+    @results = ("", 0, "") unless scalar @results;
+    my %data;
+    @data{ qw( content version last_modified ) } = @results;
+    $data{checksum} = $self->{_checksum_method}->($data{content});
+    return wantarray ? %data : $data{content};
+}
+
+=item B<retrieve_node_and_checksum>
+
+  my ($content, $cksum) = $backend->retrieve_node_and_checksum($node);
+
+Works just like retrieve_node would in scalar context, but also gives you
+a checksum that you must send back when you want to commit changes, so
+you can check that no other changes have been committed while you were
+editing.
+
+This is a convenience method supplied for backwards compatibility with
+0.03, and will possibly disappear at some point.
+
+=cut
+
+sub retrieve_node_and_checksum {
+    my ($self, $node) = @_;
+    my %data = $self->retrieve_node($node) or return ();
+    return @data{ qw( content checksum ) };
 }
 
 =item B<verify_checksum>
 
-  my $ok = $backend->verify_checksum($node, $checksum);
+  my $ok = $store->verify_checksum($node, $checksum);
 
 Sees whether your checksum is current for the given node. Returns true
 if so, false if not.
@@ -117,7 +161,7 @@ sub verify_checksum {
 
 =item B<write_node_after_locking>
 
-  $backend->write_node_after_locking($node, $content)
+  $store->write_node_after_locking($node, $content)
       or handle_error();
 
 Writes the specified content into the specified node. Making sure that
@@ -181,12 +225,12 @@ sub _get_timestamp {
     unless( ref $time ) {
 	$time = localtime($time); # Make it into an object for strftime
     }
-    return $time->strftime("%Y-%m-%d %H:%M:%S");
+    return $time->strftime($timestamp_fmt); # global
 }
 
 =item B<delete_node>
 
-  $backend->delete_node($node);
+  $store->delete_node($node);
 
 Deletes the node (whether it exists or not), croaks on error. Again,
 doesn't do any kind of locking. You probably don't want to let anyone
@@ -209,13 +253,13 @@ sub delete_node {
 =item B<list_recent_changes>
 
   # Changes in last 7 days.
-  my @nodes = $backend->list_recent_changes( days => 7 );
+  my @nodes = $store->list_recent_changes( days => 7 );
 
   # Changes since a given time.
-  my @nodes = $backend->list_recent_changes( since => 1036235131 );
+  my @nodes = $store->list_recent_changes( since => 1036235131 );
 
   # Most recent change and its details.
-  my @nodes = $backend->list_recent_changes( days => 1 );
+  my @nodes = $store->list_recent_changes( days => 1 );
   print "Node:          $nodes[0]{name}";
   print "Last modified: $nodes[0]{last_modified}";
   print "Comment:       $nodes[0]{comment}";
@@ -263,7 +307,7 @@ sub _list_changes_since {
                FROM node, content WHERE node.modified >= "
             . $dbh->quote($timestamp)
             . " AND node.name=content.name AND node.version=content.version "
-	    . " ORDER BY modified DESC";
+	    . " ORDER BY node.modified DESC";
     my $nodesref = $dbh->selectall_arrayref($sql);
     return map { { name          => $_->[0],
 		   last_modified => $_->[1],
@@ -273,7 +317,7 @@ sub _list_changes_since {
 
 =item B<list_all_nodes>
 
-  my @nodes = $backend->list_all_nodes();
+  my @nodes = $store->list_all_nodes();
 
 Returns a list containing the name of every existing node.  The list
 won't be in any kind of order; do any sorting in your calling script.

@@ -1,12 +1,12 @@
 use strict;
 use CGI::Wiki;
-use CGI::Wiki::Store::Pg;
+use CGI::Wiki::Store::SQLite;
 use CGI::Wiki::TestConfig;
 BEGIN {
     require Test::More;
     Test::More->import(
-        skip_all => "No Postgres database configured for testing" )
-      unless $CGI::Wiki::TestConfig::config{Pg}{dbname};
+        skip_all => "No SQLite database available for testing" )
+      unless $CGI::Wiki::TestConfig::config{SQLite}{dbname};
 }
 use Test::More tests => 7;
 use Hook::LexWrap;
@@ -14,19 +14,16 @@ use Test::MockObject;
 
 my $class;
 BEGIN {
-    $class = "CGI::Wiki::Store::Pg";
+    $class = "CGI::Wiki::Store::SQLite";
     use_ok($class);
 }
 
 eval { $class->new; };
 ok( $@, "Failed creation dies" );
 
-my %config = %{$CGI::Wiki::TestConfig::config{Pg}};
-my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
-
-my $store = eval { $class->new( dbname => $dbname,
-                                dbuser => $dbuser,
-                                dbpass => $dbpass,
+my %config = %{$CGI::Wiki::TestConfig::config{SQLite}};
+my $dbname = $config{dbname};
+my $store = eval { $class->new( dbname          => $dbname,
                                 checksum_method => \&md5_hex );
 
                  };
@@ -35,9 +32,9 @@ isa_ok( $store, $class );
 ok( $store->dbh, "...and has set up a database handle" );
 
 my $wiki = CGI::Wiki->new( dbname => $dbname,
-                           dbuser => $dbuser,
-                           dbpass => $dbpass,
-                           storage_backend => "postgres" );
+                           dbuser => "",
+                           dbpass => "",
+                           storage_backend => "sqlite" );
 
 # White box testing - override verify_node_checksum to first verify the
 # checksum and then if it's OK set up a new wiki object that sneakily
@@ -49,11 +46,12 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
         undef $temp; # Don't want to wrap our sneaking-in
         my $node = $_[1];
         my $evil_wiki = CGI::Wiki->new( dbname => $dbname,
-                                        dbuser => $dbuser,
-                                        dbpass => $dbpass,
-                                        storage_backend => "postgres" );
-        my %node_data = $evil_wiki->retrieve_node($node);
-        $evil_wiki->write_node($node, "foo", $node_data{checksum})
+                                        dbuser => "",
+                                        dbpass => "",
+                                        storage_backend => "sqlite" );
+        my ($content, $checksum) =
+            $evil_wiki->retrieve_node_and_checksum($node);
+        $evil_wiki->write_node($node, "foo", $checksum)
             or die "Evil wiki got conflict on writing";
     };
 

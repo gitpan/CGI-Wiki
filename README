@@ -53,10 +53,10 @@ METHODS
 
           my $wiki = CGI::Wiki->new(%config);
 
-        Currently the only storage backends supported are "mysql" and
-        "postgres", and the only search backend supported (other than no
-        search at all) is "dbixfts", which uses the DBIx::FullTextSearch
-        module, and so can only be used with MySQL.
+        Currently the only storage backends supported are "mysql",
+        "postgres", and "sqlite"; and the only search backend supported
+        (other than no search at all) is "dbixfts", which uses the
+        DBIx::FullTextSearch module, and so can only be used with MySQL.
 
         The parameters will default to the values shown above (apart from
         "allowed_tags", which defaults to allowing no tags, and
@@ -76,14 +76,6 @@ METHODS
                            <input type="hidden" name="action" value="search">
                            <input type="text" size="20" name="terms">
                            <input type="submit"></form>) }
-
-    retrieve_node_and_checksum
-          my ($content, $cksum) = $wiki->retrieve_node_and_checksum($node);
-
-        Works just like retrieve_node, but also gives you a checksum that
-        you must send back when you want to commit changes, so you can check
-        that no other changes have been committed while you were editing.
-        Currently it's just the md5sum of the node content.
 
     format
           my $html = $wiki->format($submitted_content);
@@ -123,6 +115,7 @@ METHODS
         * list_all_nodes
         * list_recent_changes
         * retrieve_node
+        * retrieve_node_and_checksum (deprecated)
         * verify_checksum
 
     Methods provided by search backend

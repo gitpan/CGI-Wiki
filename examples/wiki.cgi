@@ -110,7 +110,8 @@ sub preview_node {
 
         process_template("edit_form.tt", $node, \%tt_vars);
     } else {
-        my ($stored, $checksum) = $wiki->retrieve_node_and_checksum($node);
+        my %node_data = $wiki->retrieve_node($node);
+        my ($stored, $checksum) = @node_data{ qw( content checksum ) };
         my %tt_vars = ( checksum    => CGI::escapeHTML($checksum),
                         new_content => CGI::escapeHTML($content),
                         stored      => CGI::escapeHTML($stored) );
@@ -120,10 +121,10 @@ sub preview_node {
 
 sub edit_node {
     my $node = shift;
-    my %tt_vars;
-    my ($content, $checksum) = $wiki->retrieve_node_and_checksum($node);
-    %tt_vars = ( content  => CGI::escapeHTML($content),
-                 checksum => CGI::escapeHTML($checksum)   );
+    my %node_data = $wiki->retrieve_node($node);
+    my ($content, $checksum) = @node_data{ qw( content checksum ) };
+    my %tt_vars = ( content  => CGI::escapeHTML($content),
+                    checksum => CGI::escapeHTML($checksum)   );
 
     process_template("edit_form.tt", $node, \%tt_vars);
 }
@@ -174,7 +175,8 @@ sub commit_node {
     if ($written) {
         display_node($node);
     } else {
-        my ($stored, $checksum) = $wiki->retrieve_node_and_checksum($node);
+        my %node_data = $wiki->retrieve_node($node);
+	my ($stored, $checksum) = @node_data{ qw( content checksum ) };
         my %tt_vars = ( checksum    => CGI::escapeHTML($checksum),
                         new_content => CGI::escapeHTML($content),
                         stored      => CGI::escapeHTML($stored) );
