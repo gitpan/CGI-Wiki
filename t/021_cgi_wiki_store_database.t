@@ -2,7 +2,6 @@
 
 use strict;
 use Test::More tests => 18;
-use Digest::MD5 "md5_hex";
 use CGI::Wiki::TestConfig;
 
 my @databases;
@@ -27,8 +26,7 @@ SKIP: {
 	    my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
 	    my $store = eval { $class->new( dbname => $dbname,
 					    dbuser => $dbuser,
-					    dbpass => $dbpass,
-					    checksum_method => \&md5_hex );
+					    dbpass => $dbpass );
 			     };
 	    is( $@, "", "Creation succeeds" );
 	    isa_ok( $store, $class );

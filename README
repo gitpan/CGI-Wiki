@@ -1,16 +1,18 @@
 NAME
     CGI::Wiki - A toolkit for building Wikis.
 
-REQUIRES
-    Uses Text::WikiFormat and HTML::PullParser to do the HTML translation,
-    Digest::MD5 to make checksums, and Class::Delegation to avoid ugliness.
-
 DESCRIPTION
     Helps you develop Wikis quickly by taking care of the boring bits for
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
+IMPORTANT NOTE
+    There was a small interface change between versions 0.05 and 0.10 - see
+    the 'Changes' file for details.
+
 SYNOPSIS
+      my $store  = CGI::Wiki::Store::MySQL->new( ... );
+      my $search = CGI::Wiki::Search::SII->new( ... );
       my $wiki   = CGI::Wiki->new(%config); # See below for parameter details
       my $q      = CGI->new;
       my $action = $q->param("action");
@@ -40,30 +42,24 @@ SYNOPSIS
 
 METHODS
     new
-         my %config = ( storage_backend => 'mysql',
-                        dbname          => 'wiki',
-                        dbuser          => 'wiki',
-                        dbpass          => 'wiki',
-                        search_backend  => 'dbixfts', # defaults to undef
-                        extended_links  => 0,
-                        implicit_links  => 1,
-                        allowed_tags    => [qw(b i)], # defaults to none
-                        macros          => {},
-                        node_prefix     => 'wiki.cgi?node=' );
+          my $store  = CGI::Wiki::Store::MySQL->new( ... );
+          my $search = CGI::Wiki::Search::SII->new( ... );
+          my %config = ( store           => $store,    # mandatory
+                         search          => $search,   # defaults to undef
+                         extended_links  => 0,
+                         implicit_links  => 1,
+                         allowed_tags    => [qw(b i)], # defaults to none
+                         macros          => {},
+                         node_prefix     => 'wiki.cgi?node=' );
 
           my $wiki = CGI::Wiki->new(%config);
 
-        Currently the only storage backends supported are "mysql",
-        "postgres", and "sqlite"; and the only search backend supported
-        (other than no search at all) is "dbixfts", which uses the
-        DBIx::FullTextSearch module, and so can only be used with MySQL.
+        "store" must be an object of type "CGI::Wiki::Store::*" and "search"
+        if supplied must be of type "CGI::Wiki::Search::*" (though this
+        isn't checked yet - FIXME).
 
-        The parameters will default to the values shown above (apart from
-        "allowed_tags", which defaults to allowing no tags, and
-        "search_backend", which defaults to not providing any search
-        methods). (If you're using a method of database authentication that
-        doesn't require a password, then leave out "dbpass" or just put any
-        old junk in there.)
+        The other parameters will default to the values shown above (apart
+        from "allowed_tags", which defaults to allowing no tags).
 
         * macros - be aware that macros are processed *after* filtering out
         disallowed HTML tags. Currently macros are just strings, maybe later
@@ -107,6 +103,18 @@ METHODS
         All parameters are mandatory. Returns 1 on success, 0 on conflict,
         croaks on error.
 
+    store
+          my $store  = $wiki->store;
+          my $dbname = eval { $wiki->store->dbname; }
+            or warn "Not a DB backend";
+
+        Returns the storage backend object.
+
+    search_obj
+          my $search_obj = $wiki->search_obj;
+
+        Returns the search backend object.
+
     Methods provided by storage backend
         See the docs for your chosen storage backend to see how these work.
 
@@ -122,13 +130,16 @@ METHODS
         See the docs for your chosen search backend to see how these work.
 
         * search_nodes
+        * supports_phrase_searches
 
 SEE ALSO
-      CGI::Wiki::Store::MySQL
-      CGI::Wiki::Store::Pg
-      CGI::Wiki::Store::Database
-      CGI::Wiki::Search::DBIxFTS
-      Text::WikiFormat
+    * CGI::Wiki::Store::MySQL
+    * CGI::Wiki::Store::Pg
+    * CGI::Wiki::Store::SQLite
+    * CGI::Wiki::Store::Database
+    * CGI::Wiki::Search::DBIxFTS
+    * CGI::Wiki::Search::SII
+    * Text::WikiFormat
 
     Other ways to implement Wikis in Perl include:
 
@@ -137,41 +148,43 @@ SEE ALSO
     * UseModWiki
 
 AUTHOR
-        Kake Pugh (kake@earth.li).
+    Kake Pugh (kake@earth.li).
 
 COPYRIGHT
-             Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+         Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
 
-        This module is free software; you can redistribute it and/or modify
-        it under the same terms as Perl itself.
+    This module is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
 
 FEEDBACK
-        Please send me mail and tell me what you think of this. It's my
-        first CPAN module, so stuff probably sucks. Tell me what sucks, send
-        me patches, send me tests. Or if it doesn't suck, tell me that too.
-        I love getting mail, even if all it says is "I used your thing and I
-        like it", or "I didn't use your thing because of X".
+    Please send me mail and tell me what you think of this. It's my first
+    CPAN module, so stuff probably sucks. Tell me what sucks, send me
+    patches, send me tests. Or if it doesn't suck, tell me that too. I love
+    getting mail, even if all it says is "I used your thing and I like it",
+    or "I didn't use your thing because of X".
 
-        I will buy beer or cider (two pints, litres, or similarly-sized
-        bottles of, not exchangeable for lager or other girly drinks, will
-        probably need to be claimed in person in whichever city I'm in at
-        the time) for the first three people to send me such mail.
+    I will buy beer or cider (two pints, litres, or similarly-sized bottles
+    of, not exchangeable for lager or other girly drinks, will probably need
+    to be claimed in person in whichever city I'm in at the time) for the
+    first three people to send me such mail. (Note: there's *still* one of
+    these rewards left; kudos to blair christensen and Clint Moore for
+    winning the first two.)
 
 CREDITS
-        Various London.pm types helped out with code review, encouragement,
-        JFDI, style advice, code snippets, module recommendations, and so
-        on; far too many to name individually, but particularly Richard
-        Clamp, Tony Fisher, Mark Fowler, and Chris Ball.
+    Various London.pm types helped out with code review, encouragement,
+    JFDI, style advice, code snippets, module recommendations, and so on;
+    far too many to name individually, but particularly Richard Clamp, Tony
+    Fisher, Mark Fowler, and Chris Ball.
 
-        blair christensen sent a patch, yay.
+    blair christensen sent a patch, yay.
 
-        And never forget to say thanks to those who wrote the stuff that
-        your module depends on. Come claim beer or home-made cakes[0] at the
-        next YAPC, people.
+    And never forget to say thanks to those who wrote the stuff that your
+    module depends on. Come claim beer or home-made cakes[0] at the next
+    YAPC, people.
 
-        [0] cakes require pre-booking
+    [0] cakes require pre-booking
 
 GRATUITOUS PLUG
-        I'm only obsessed with Wikis because of the Open-Source Guide to
-        London -- http://grault.net/grubstreet/
+    I'm only obsessed with Wikis because of the Open-Source Guide to London
+    -- http://grault.net/grubstreet/
 

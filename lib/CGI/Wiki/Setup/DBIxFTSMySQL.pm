@@ -2,6 +2,9 @@ package CGI::Wiki::Setup::DBIxFTSMySQL;
 
 use strict;
 
+use vars qw( $VERSION );
+$VERSION = 0.02;
+
 use DBI;
 use DBIx::FullTextSearch;
 use Carp;
@@ -13,7 +16,7 @@ CGI::Wiki::Setup::DBIxFTSMySQL - set up fulltext indexes for CGI::Wiki
 =head1 SYNOPSIS
 
   use CGI::Wiki::Setup::DBIxFTSMySQL;
-  CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuse, $dbpass);
+  CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass);
 
 =head1 DESCRIPTION
 

@@ -8,7 +8,7 @@ BEGIN {
         skip_all => "No SQLite database available for testing" )
       unless $CGI::Wiki::TestConfig::config{SQLite}{dbname};
 }
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Hook::LexWrap;
 use Test::MockObject;
 
@@ -23,18 +23,17 @@ ok( $@, "Failed creation dies" );
 
 my %config = %{$CGI::Wiki::TestConfig::config{SQLite}};
 my $dbname = $config{dbname};
-my $store = eval { $class->new( dbname          => $dbname,
-                                checksum_method => \&md5_hex );
-
+my $store = eval { $class->new( dbname => $dbname );
                  };
 is( $@, "", "Creation succeeds" );
 isa_ok( $store, $class );
 ok( $store->dbh, "...and has set up a database handle" );
+ok( $store->can( "retrieve_node" ), "...the object can 'retrieve_node'" );
+ok( $store->retrieve_node("Home"),
+    "...and we can call 'retrieve_node' with a parameter" );
 
-my $wiki = CGI::Wiki->new( dbname => $dbname,
-                           dbuser => "",
-                           dbpass => "",
-                           storage_backend => "sqlite" );
+my $wiki = CGI::Wiki->new( store => $store );
+die "Couldn't create wiki object" unless $wiki->isa( "CGI::Wiki" );
 
 # White box testing - override verify_node_checksum to first verify the
 # checksum and then if it's OK set up a new wiki object that sneakily
@@ -45,10 +44,8 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
     post => sub {
         undef $temp; # Don't want to wrap our sneaking-in
         my $node = $_[1];
-        my $evil_wiki = CGI::Wiki->new( dbname => $dbname,
-                                        dbuser => "",
-                                        dbpass => "",
-                                        storage_backend => "sqlite" );
+        my $evil_store = $class->new( dbname => $dbname );
+        my $evil_wiki = CGI::Wiki->new( store => $evil_store );
         my ($content, $checksum) =
             $evil_wiki->retrieve_node_and_checksum($node);
         $evil_wiki->write_node($node, "foo", $checksum)

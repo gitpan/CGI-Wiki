@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 171;
+use Test::More tests => 215;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -10,41 +10,57 @@ BEGIN {
   warnings_are { use_ok('CGI::Wiki') } [], "CGI::Wiki raised no warnings";
 };
 
-##### Test failed creation.
-eval { CGI::Wiki->new( storage_backend => "ijustmadethisup" );
+# Note - the Search::InvertedIndex test will raise warnings about the
+# test database not being open at cleanup. This is a known problem
+# which shouldn't affect normal use.
+
+##### Test that calling with deprecated options warns.
+foreach my $obsolete_param ( qw( storage_backend search_backend ) ) {
+    warning_like { CGI::Wiki->new( storage_backend => "foo",
+				   store => "foo" ) }
+                 qr/parameter is no longer used/,
+                 "warnings raised on obsolete parameter $obsolete_param";
+}
+
+##### Test failed creation.  Note this has a few tests missing.
+eval { CGI::Wiki->new;
      };
-ok( $@, "Failed creation dies" );
+ok( $@, "Creation dies if no store supplied" );
 
-
-# Test for each configured pair: $storage_backend, $search_backend.
+# Test for each configured pair: $store, $search.
 my %config = %CGI::Wiki::TestConfig::config;
 # This way of doing it is probably really ugly, but better that than
 # sitting here agonising for ever.
 my @tests;
-push @tests, { store  => "mysql",
+push @tests, { store  => "CGI::Wiki::Store::MySQL",
 	       search => undef,
 	       config => $config{MySQL},
 	       do     => ( $config{MySQL}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "mysql",
-	       search => "dbixfts",
+push @tests, { store  => "CGI::Wiki::Store::MySQL",
+	       search => "CGI::Wiki::Search::DBIxFTS",
 	       config => $config{MySQL},
 	       do     => ( $config{MySQL}{dbname}
                            and $config{dbixfts} ? 1 : 0 ) };
-push @tests, { store  => "postgres",
+push @tests, { store  => "CGI::Wiki::Store::MySQL",
+	       search => "CGI::Wiki::Search::SII",
+	       config => $config{MySQL},
+	       do     => ( $config{MySQL}{dbname}
+                           and $config{search_invertedindex} ? 1 : 0 ) };
+push @tests, { store  => "CGI::Wiki::Store::Pg",
 	       search => undef,
 	       config => $config{Pg},
 	       do     => ( $config{Pg}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "sqlite",
+push @tests, { store  => "CGI::Wiki::Store::SQLite",
 	       search => undef,
 	       config => $config{SQLite},
 	       do     => ( $config{SQLite}{dbname} ? 1 : 0 ) };
 
 foreach my $configref (@tests) {
     my %testconfig = %$configref;
-    my ($storage_backend, $search_backend) = @testconfig{qw(store search)};
+    my ( $store_class, $search_class ) = @testconfig{qw(store search)};
     SKIP: {
-        skip "Store $storage_backend and search "
-	   . ( defined $search_backend ? $search_backend : "undef" )
+        skip "Store $store_class and search "
+	   . ( defined $search_class ? $search_class : "undef" )
 	   . " not configured for testing", 42 unless $testconfig{do};
 
 	##### Grab working db/user/pass.
@@ -52,12 +68,40 @@ foreach my $configref (@tests) {
 	my $dbuser = $testconfig{config}{dbuser};
 	my $dbpass = $testconfig{config}{dbpass};
 
+	eval "require $store_class";
+	my $store = $store_class->new( dbname => $dbname,
+				       dbuser => $dbuser,
+				       dbpass => $dbpass )
+	  or die "Couldn't set up test store";
+	my $search;
+	if ( $search_class ) {
+	    eval "require $search_class";
+	    my %search_config;
+	    if ( $search_class eq "CGI::Wiki::Search::DBIxFTS" ) {
+	        # DBIxFTS only works with MySQL.
+	        require DBI;
+	        my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass);
+		%search_config = ( dbh => $dbh );
+	    } elsif ( $search_class eq "CGI::Wiki::Search::SII" ) {
+                # Only test with MySQL for now.  FIXME.
+                my $indexdb = Search::InvertedIndex::DB::Mysql->new(
+                   -db_name    => $dbname,
+                   -username   => $dbuser,
+                   -password   => $dbpass,
+		   -hostname   => '',
+                   -table_name => 'siindex',
+                   -lock_mode  => 'EX' );
+		%search_config = ( indexdb => $indexdb );
+	    } else {
+	        die "Whoops, don't know how to set up a $search_class";
+            }
+	    $search = $search_class->new( %search_config )
+	      or die "Couldn't set up test search";
+	}
+
         ##### Test succesful creation.
-        my $wiki = CGI::Wiki->new( dbname          => $dbname,
-				   dbuser          => $dbuser,
-				   dbpass          => $dbpass,
-				   search_backend  => $search_backend,
-				   storage_backend => $storage_backend );
+        my $wiki = CGI::Wiki->new( store  => $store,
+				   search => $search );
         isa_ok( $wiki, "CGI::Wiki" );
         ok( $wiki->retrieve_node("Home"), "...and we can talk to the store" );
 
@@ -111,7 +155,7 @@ foreach my $configref (@tests) {
         ##### Test searching.
         SKIP: {
             skip "Not testing search for this configuration", 10
-	        unless $search_backend;
+	        unless $search;
             my %results = eval {
                 local $SIG{__WARN__} = sub { die $_[0] };
                 $wiki->search_nodes('home');
@@ -134,10 +178,16 @@ foreach my $configref (@tests) {
             isnt( scalar keys %results, 0,
     	      "...and the OR search seems to work" );
 
-            %results = $wiki->search_nodes('expert "wombat defenestration"');
-            isnt( scalar keys %results, 0, "...and can find a phrase" );
-            ok( ! defined $results{"001 Defenestration"},
-                "...and ignores nodes that only have part of the phrase" );
+            SKIP: {
+                skip "Search backend $search doesn't support"
+		   . " phrase searches", 2
+	            unless $wiki->supports_phrase_searches;
+
+                %results=$wiki->search_nodes('expert "wombat defenestration"');
+		isnt( scalar keys %results, 0, "...and can find a phrase" );
+		ok( ! defined $results{"001 Defenestration"},
+		    "...and ignores nodes that only have part of the phrase" );
+	    }
 
 	    ##### Test that newly-created nodes come up in searches, and that
 	    ##### once deleted they don't come up any more.
@@ -178,7 +228,7 @@ foreach my $configref (@tests) {
 	my $prev_lastmod = Time::Piece->strptime($node_data{last_modified},
  				   $CGI::Wiki::Store::Database::timestamp_fmt);
         print "# [$lastmod] [$prev_lastmod]\n";
-	ok( $lastmod > $prev_lastmod, "...as is last_modified" );
+ 	ok( $lastmod > $prev_lastmod, "...as is last_modified" );
         my $old_content = $wiki->retrieve_node(
 	    name    => "Everyone's Favourite Hobby",
 	    version => 2 );

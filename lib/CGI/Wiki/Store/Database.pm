@@ -2,14 +2,16 @@ package CGI::Wiki::Store::Database;
 
 use strict;
 
-use vars qw( $VERSION $timestamp_fmt);
-$VERSION = 0.03;
+use vars qw( $VERSION $timestamp_fmt );
 $timestamp_fmt = "%Y-%m-%d %H:%M:%S";
 
 use DBI;
 use Time::Piece;
 use Time::Seconds;
 use Carp qw(croak);
+use Digest::MD5 qw( md5_hex );
+
+$VERSION = '0.05';
 
 =head1 NAME
 
@@ -31,13 +33,13 @@ Can't see yet why you'd want to use the backends directly, but:
 
   my $store = CGI::Wiki::Store::MySQL->new( dbname => "wiki",
 					    dbuser => "wiki",
-					    dbpass => "wiki",
-				   checksum_method => \&md5_hex );
+					    dbpass => "wiki" );
 
-dbname, dbuser and checksum_method parameters are mandatory. If you
-want defaults done for you then get at it via CGI::Wiki instead. 
-dbpass isn't mandatory, but you'll want to supply it unless your
-authentication method doesn't require it.
+dbname and dbuser parameters are mandatory. If you want defaults done
+for you then get at it via CGI::Wiki instead. dbpass isn't mandatory,
+but you'll want to supply it unless your authentication method doesn't
+require it. If your authentication method doesn't need a database
+username, just put any old junk in there.
 
 =cut
 
@@ -52,13 +54,12 @@ sub _init {
     my ($self, %args) = @_;
 
     # Store parameters.
-    foreach ( qw(dbname dbuser checksum_method) ) {
+    foreach ( qw(dbname dbuser) ) {
         die "Must supply a value for $_" unless defined $args{$_};
         $self->{"_$_"} = $args{$_};
     }
-    ref $self->{_checksum_method} eq "CODE"
-        or die "Must supply a coderef for checksum_method";
     $self->{_dbpass} = $args{dbpass} || "";
+    $self->{_checksum_method} = \&md5_hex;
 
     # Connect to database and store the database handle.
     my ($dbname, $dbuser, $dbpass) = @$self{qw(_dbname _dbuser _dbpass)};
@@ -114,7 +115,7 @@ sub retrieve_node {
     @results = ("", 0, "") unless scalar @results;
     my %data;
     @data{ qw( content version last_modified ) } = @results;
-    $data{checksum} = $self->{_checksum_method}->($data{content});
+    $data{checksum} = md5_hex($data{content});
     return wantarray ? %data : $data{content};
 }
 
@@ -156,7 +157,7 @@ can however be useful when previewing edits, for example.
 sub verify_checksum {
     my ($self, $node, $checksum) = @_;
     my $content = $self->retrieve_node($node);
-    return ( $checksum eq $self->{_checksum_method}->($content) );
+    return ( $checksum eq md5_hex($content) );
 }
 
 =item B<write_node_after_locking>
@@ -343,6 +344,45 @@ Returns the database handle belonging to this storage backend instance.
 sub dbh {
     my $self = shift;
     return $self->{_dbh};
+}
+
+=item B<dbname>
+
+  my $dbname = $store->dbname;
+
+Returns the name of the database used for backend storage.
+
+=cut
+
+sub dbname {
+    my $self = shift;
+    return $self->{_dbname};
+}
+
+=item B<dbh>
+
+  my $dbuser = $store->dbuser;
+
+Returns the username used to connect to the database used for backend storage.
+
+=cut
+
+sub dbuser {
+    my $self = shift;
+    return $self->{_dbuser};
+}
+
+=item B<dbpass>
+
+  my $dbpass = $store->dbpass;
+
+Returns the password used to connect to the database used for backend storage.
+
+=cut
+
+sub dbpass {
+    my $self = shift;
+    return $self->{_dbpass};
 }
 
 # Cleanup.

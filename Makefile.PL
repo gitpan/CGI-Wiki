@@ -141,6 +141,24 @@ if ($@) {
     $CGI::Wiki::TestConfig::config{SQLite} = { dbname => "t/sqlite-test.db" };
 }
 
+# If we have a MySQL store configured, and Search::InvertedIndex installed,
+# we can test that without asking questions.
+eval { require Search::InvertedIndex; };
+my $sii_inst = $@ ? 0 : 1;
+if ($CGI::Wiki::TestConfig::config{MySQL}{dbname} and $sii_inst) {
+    print "You have Search::InvertedIndex installed and a MySQL test\n";
+    print "database configured, so will test the S:II search backend...\n\n";
+    $CGI::Wiki::TestConfig::config{search_invertedindex} = 1;
+} elsif ( $sii_inst ) {
+    print "You have Search::InvertedIndex installed but no MySQL test\n";
+    print "database configured; skipping test of S:II search backend...\n\n";
+    $CGI::Wiki::TestConfig::config{search_invertedindex} = undef;
+} else {
+    print "You do not have Search::InvertedIndex installed; skipping test\n";
+    print "of S:II search backend...\n\n";
+    $CGI::Wiki::TestConfig::config{search_invertedindex} = undef;
+}
+
 # Write out the config for next run.
 open OUT, ">lib/CGI/Wiki/TestConfig.pm"
   or die "Couldn't open lib/CGI/Wiki/TestConfig.pm for writing: $!";

@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.05;
+$VERSION = '0.10';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -16,7 +16,7 @@ use Class::Delegation
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
-    send => 'search_nodes',
+    send => ['search_nodes', 'supports_phrase_searches'],
     to   => '_search',
     ;
 
@@ -24,19 +24,21 @@ use Class::Delegation
 
 CGI::Wiki - A toolkit for building Wikis.
 
-=head1 REQUIRES
-
-Uses Text::WikiFormat and HTML::PullParser to do the HTML translation,
-Digest::MD5 to make checksums, and Class::Delegation to avoid ugliness.
-
 =head1 DESCRIPTION
 
 Helps you develop Wikis quickly by taking care of the boring bits for
 you. The aim is to allow different types of backend storage and search
 without you having to worry about the details.
 
+=head1 IMPORTANT NOTE
+
+There was a small interface change between versions 0.05 and 0.10 -
+see the 'Changes' file for details.
+
 =head1 SYNOPSIS
 
+  my $store  = CGI::Wiki::Store::MySQL->new( ... );
+  my $search = CGI::Wiki::Search::SII->new( ... );
   my $wiki   = CGI::Wiki->new(%config); # See below for parameter details
   my $q      = CGI->new;
   my $action = $q->param("action");
@@ -70,31 +72,25 @@ without you having to worry about the details.
 
 =item B<new>
 
- my %config = ( storage_backend => 'mysql',
-		dbname          => 'wiki',
-		dbuser          => 'wiki',
-		dbpass          => 'wiki',
-                search_backend  => 'dbixfts', # defaults to undef
-                extended_links  => 0,
-                implicit_links  => 1,
-                allowed_tags    => [qw(b i)], # defaults to none
-                macros          => {},
-	        node_prefix     => 'wiki.cgi?node=' );
+  my $store  = CGI::Wiki::Store::MySQL->new( ... );
+  my $search = CGI::Wiki::Search::SII->new( ... );
+  my %config = ( store           => $store,    # mandatory
+                 search          => $search,   # defaults to undef
+                 extended_links  => 0,
+                 implicit_links  => 1,
+                 allowed_tags    => [qw(b i)], # defaults to none
+                 macros          => {},
+	         node_prefix     => 'wiki.cgi?node=' );
 
 
   my $wiki = CGI::Wiki->new(%config);
 
-Currently the only storage backends supported are C<mysql>,
-C<postgres>, and C<sqlite>; and the only search backend supported
-(other than no search at all) is C<dbixfts>, which uses the
-DBIx::FullTextSearch module, and so can only be used with MySQL.
+C<store> must be an object of type C<CGI::Wiki::Store::*> and
+C<search> if supplied must be of type C<CGI::Wiki::Search::*> (though
+this isn't checked yet - FIXME).
 
-The parameters will default to the values shown above (apart from
-C<allowed_tags>, which defaults to allowing no tags, and
-C<search_backend>, which defaults to not providing any search
-methods). (If you're using a method of database authentication that
-doesn't require a password, then leave out C<dbpass> or just put any
-old junk in there.)
+The other parameters will default to the values shown above (apart from
+C<allowed_tags>, which defaults to allowing no tags).
 
 =over 4
 
@@ -125,13 +121,20 @@ sub new {
 sub _init {
     my ($self, %args) = @_;
 
-    # Store the optional scalar parameters or their defaults.
-    my %defs = ( storage_backend => 'mysql',
-		 dbname          => 'wiki',
-		 dbuser          => 'wiki',
-		 dbpass          => 'wiki',
-		 search_backend  => undef,
-	         extended_links  => 0,
+    # Check for scripts written with old versions of CGI::Wiki
+    foreach my $obsolete_param ( qw( storage_backend search_backend ) ) {
+        carp "You seem to be using a script written for a pre-0.10 version "
+           . "of CGI::Wiki - the $obsolete_param parameter is no longer used. "
+           . "Please read the documentation with 'perldoc CGI::Wiki'"
+          if $args{$obsolete_param};
+    }
+
+    croak "No store supplied" unless $args{store};
+
+    # Store the parameters or their defaults.
+    my %defs = ( store           => undef, # won't be used but we need the key
+		 search          => undef,
+		 extended_links  => 0,
 	         implicit_links  => 1,
 		 allowed_tags    => [],
 		 macros          => {},
@@ -141,54 +144,6 @@ sub _init {
     my %collated = (%defs, %args);
     foreach my $k (keys %defs) {
         $self->{"_".$k} = $collated{$k};
-    }
-
-    # Make sure that the storage backend is one we support, and
-    # connect to it if so. *BACKEND*
-    my $store_type = $self->{_storage_backend};
-    if ($store_type eq "mysql") {
-        require CGI::Wiki::Store::MySQL;
-        eval { $self->{_store} = CGI::Wiki::Store::MySQL->new(
-                   dbname => $self->{_dbname},
-	           dbuser => $self->{_dbuser},
-                   dbpass => $self->{_dbpass},
-		   checksum_method => \&md5_hex           )
-            };
-        croak "Failed to connect to storage backend $store_type: $@" if $@;
-    } elsif ($store_type eq "postgres") {
-        require CGI::Wiki::Store::Pg;
-        eval { $self->{_store} = CGI::Wiki::Store::Pg->new(
-                   dbname => $self->{_dbname},
-		   dbuser => $self->{_dbuser},
-		   dbpass => $self->{_dbpass},
-		   checksum_method => \&md5_hex        )
-            };
-        croak "Failed to connect to storage backend $store_type: $@" if $@;
-    } elsif ($store_type eq "sqlite") {
-        require CGI::Wiki::Store::SQLite;
-        eval { $self->{_store} = CGI::Wiki::Store::SQLite->new(
-                   dbname => $self->{_dbname},
-		   checksum_method => \&md5_hex        )
-            };
-        croak "Failed to connect to storage backend $store_type: $@" if $@;
-    } else {
-        croak "Storage backend '$store_type' is not currently supported";
-    }
-
-    # Make sure that the search backend is one we support, and set it up.
-    my $search_type = $self->{_search_backend};
-    if (defined $search_type) {
-        if ($search_type eq 'dbixfts') {
-            require CGI::Wiki::Search::DBIxFTS;
-	    my $store_dbh = $self->{_store}->dbh;
-            eval {
-                $self->{_search} = CGI::Wiki::Search::DBIxFTS->new(
-                    dbh => $store_dbh );
-            };
-            croak "Couldn't set up search object: $@" if $@;
-        } else {
-            croak "Search backend '$search_type' is not supported";
-        }
     }
 
     return $self;
@@ -273,18 +228,45 @@ sub write_node {
     croak "No content parameter supplied for writing" unless defined $content;
     $checksum = md5_hex("") unless defined $checksum;
 
-    my $store = $self->{_store};
+    my $store = $self->store;
     $store->check_and_write_node( node     => $node,
 				  content  => $content,
 				  checksum => $checksum ) or return 0;
 
     my $search = $self->{_search};
     if ($search) {
-        $search->index_node($node);
+        $search->index_node($node, $content);
     }
     return 1;
 }
 
+=item B<store>
+
+  my $store  = $wiki->store;
+  my $dbname = eval { $wiki->store->dbname; }
+    or warn "Not a DB backend";
+
+Returns the storage backend object.
+
+=cut
+
+sub store {
+    my $self = shift;
+    return $self->{_store};
+}
+
+=item B<search_obj>
+
+  my $search_obj = $wiki->search_obj;
+
+Returns the search backend object.
+
+=cut
+
+sub search_obj {
+    my $self = shift;
+    return $self->{_search};
+}
 
 # Now for the things that are provided by the various plugins.
 
@@ -317,27 +299,43 @@ See the docs for your chosen search backend to see how these work.
 
 =item * search_nodes
 
+=item * supports_phrase_searches
+
 =back
 
 =back
 
 =head1 SEE ALSO
 
-  CGI::Wiki::Store::MySQL
-  CGI::Wiki::Store::Pg
-  CGI::Wiki::Store::Database
-  CGI::Wiki::Search::DBIxFTS
-  Text::WikiFormat
+=over 4
+
+=item * L<CGI::Wiki::Store::MySQL>
+
+=item * L<CGI::Wiki::Store::Pg>
+
+=item * L<CGI::Wiki::Store::SQLite>
+
+=item * L<CGI::Wiki::Store::Database>
+
+=item * L<CGI::Wiki::Search::DBIxFTS>
+
+=item * L<CGI::Wiki::Search::SII>
+
+=item * L<Text::WikiFormat>
+
+=back
 
 Other ways to implement Wikis in Perl include:
 
 =over 4
 
-=item * CGI::pWiki
+=item * L<CGI::pWiki>
 
-=item * AxKit::XSP::Wiki
+=item * L<AxKit::XSP::Wiki>
 
 =item * UseModWiki
+
+=back
 
 =head1 AUTHOR
 
@@ -361,7 +359,9 @@ like it", or "I didn't use your thing because of X".
 I will buy beer or cider (two pints, litres, or similarly-sized bottles
 of, not exchangeable for lager or other girly drinks, will probably
 need to be claimed in person in whichever city I'm in at the time) for
-the first three people to send me such mail.
+the first three people to send me such mail. (Note: there's I<still> one
+of these rewards left; kudos to blair christensen and Clint Moore for
+winning the first two.)
 
 =head1 CREDITS
 

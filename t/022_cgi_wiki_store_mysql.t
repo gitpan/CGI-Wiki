@@ -21,8 +21,7 @@ SKIP: {
 
     my $store = eval { $class->new( dbname => $dbname,
 				    dbuser => $dbuser,
-				    dbpass => $dbpass,
-				    checksum_method => \&md5_hex );
+				    dbpass => $dbpass );
 		     };
     is( $@, "", "Creation succeeds" );
     isa_ok( $store, $class );
@@ -31,8 +30,7 @@ SKIP: {
     # White box test - do internal locking functions work the way we expect?
     my $evil_store = $class->new( dbname => $dbname,
 				  dbuser => $dbuser,
-				  dbpass => $dbpass,
-				  checksum_method => \&md5_hex );
+				  dbpass => $dbpass );
 
     ok( $store->_lock_node("Home"), "Can lock a node" );
     ok( ! $evil_store->_lock_node("Home"),

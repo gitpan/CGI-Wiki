@@ -32,8 +32,7 @@ sub _dsn {
 
 =item B<new>
 
-  my $store = CGI::Wiki::Store::SQLite->new( dbname => "wiki",
-                                    checksum_method => \&md5_hex );
+  my $store = CGI::Wiki::Store::SQLite->new( dbname => "wiki" );
 
 The dbname parameter is mandatory. If you want defaults done for you
 then get at it via CGI::Wiki instead.

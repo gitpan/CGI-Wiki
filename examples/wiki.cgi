@@ -6,6 +6,8 @@ use strict;
 use warnings;
 use CGI qw/:standard/;
 use CGI::Wiki;
+use CGI::Wiki::Store::MySQL;
+use CGI::Wiki::Search::DBIxFTS;
 use Template;
 
 # Initialise
@@ -17,11 +19,13 @@ my %macros = (
 	   <input type="text" size="20" name="terms">
 	   <input type="submit" name="Search" value="Search"></form>) );
 
-my %conf = ( storage_backend => 'mysql',
-	     dbname          => 'kakewiki',
-	     dbuser          => 'wiki',
-	     dbpass          => 'wiki',
-	     search_backend  => 'dbixfts',
+my $store = CGI::Wiki::Store::MySQL->new( dbname => "kakewiki",
+                                          dbuser => "wiki",
+                                          dbpass => "wiki" );
+my $dbh = $store->dbh;
+my $search = CGI::Wiki::Search::DBIxFTS->new( dbh => $dbh );
+my %conf = ( store           => $store,
+             search          => $search,
 	     extended_links  => 1,
 	     implicit_links  => 0,
 	     allowed_tags    => [qw(p b i pre)],

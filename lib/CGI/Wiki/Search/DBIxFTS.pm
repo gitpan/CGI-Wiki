@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 =head1 NAME
 
@@ -149,11 +149,26 @@ sub delete_node {
     $fts_titles->delete_document($node) or croak "Couldn't delete from index";
 }
 
+=item B<supports_phrase_searches>
+
+  if ( $search->supports_phrase_searches ) {
+      return $search->search_nodes( '"fox in socks"' );
+  }
+
+Returns true if this search backend supports phrase searching, and
+false otherwise.
+
+=cut
+
+sub supports_phrase_searches {
+    return 1;
+}
+
 =back
 
 =head1 SEE ALSO
 
-  CGI::Wiki
+L<CGI::Wiki>
 
 =cut
 

@@ -26,18 +26,13 @@ my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
 
 my $store = eval { $class->new( dbname => $dbname,
                                 dbuser => $dbuser,
-                                dbpass => $dbpass,
-                                checksum_method => \&md5_hex );
-
+                                dbpass => $dbpass );
                  };
 is( $@, "", "Creation succeeds" );
 isa_ok( $store, $class );
 ok( $store->dbh, "...and has set up a database handle" );
 
-my $wiki = CGI::Wiki->new( dbname => $dbname,
-                           dbuser => $dbuser,
-                           dbpass => $dbpass,
-                           storage_backend => "postgres" );
+my $wiki = CGI::Wiki->new( store => $store );
 
 # White box testing - override verify_node_checksum to first verify the
 # checksum and then if it's OK set up a new wiki object that sneakily
@@ -48,10 +43,10 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
     post => sub {
         undef $temp; # Don't want to wrap our sneaking-in
         my $node = $_[1];
-        my $evil_wiki = CGI::Wiki->new( dbname => $dbname,
-                                        dbuser => $dbuser,
-                                        dbpass => $dbpass,
-                                        storage_backend => "postgres" );
+	my $evil_store = $class->new( dbname => $dbname,
+				      dbuser => $dbuser,
+				      dbpass => $dbpass );
+        my $evil_wiki = CGI::Wiki->new( store => $evil_store );
         my %node_data = $evil_wiki->retrieve_node($node);
         $evil_wiki->write_node($node, "foo", $node_data{checksum})
             or die "Evil wiki got conflict on writing";

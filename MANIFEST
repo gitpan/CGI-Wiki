@@ -19,9 +19,11 @@ examples/templates/search_results.tt
 examples/templates/site_index.tt
 examples/wiki.cgi
 lib/CGI/Wiki/Search/DBIxFTS.pm
+lib/CGI/Wiki/Search/SII.pm
 lib/CGI/Wiki/Setup/DBIxFTSMySQL.pm
 lib/CGI/Wiki/Setup/MySQL.pm
 lib/CGI/Wiki/Setup/Pg.pm
+lib/CGI/Wiki/Setup/SII.pm
 lib/CGI/Wiki/Setup/SQLite.pm
 lib/CGI/Wiki/Store/Database.pm
 lib/CGI/Wiki/Store/MySQL.pm
@@ -32,6 +34,7 @@ t/001_setup_mysql.t
 t/002_setup_pg.t
 t/003_setup_mysql_dbixfts.t
 t/004_setup_sqlite.t
+t/005_setup_mysql_search_invertedindex.t
 t/011_cgi_wiki.t
 t/021_cgi_wiki_store_database.t
 t/022_cgi_wiki_store_mysql.t
