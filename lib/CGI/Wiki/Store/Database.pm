@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.17';
+$VERSION = '0.18';
 
 =head1 NAME
 
@@ -396,7 +396,12 @@ sub write_node_post_locking {
     foreach my $links_to ( @links_to ) {
         $sql = "INSERT INTO internal_links (link_from, link_to) VALUES ("
              . join(", ", map { $dbh->quote($_) } ( $node, $links_to ) ) . ")";
-        $dbh->do($sql) or croak $dbh->errstr;
+        # Better to drop a backlink or two than to lose the whole update.
+        # Shevek wants a case-sensitive wiki, Jerakeen wants a case-insensitive
+        # one, MySQL compares case-sensitively on varchars unless you add
+        # the binary keyword.  Case-sensitivity to be revisited.
+        eval { $dbh->do($sql); };
+        carp "Couldn't index backlink: " . $dbh->errstr if $@;
     }
 
     # And also store any metadata.  Note that any entries already in the

@@ -47,6 +47,8 @@ t/014_recent_changes.t
 t/015_blank_data.t
 t/016_fuzzy_title_match.t
 t/017_advanced_metadata.t
+t/018_dangling_links.t
+t/019_backlinks.t
 t/021_cgi_wiki_store_database.t
 t/022_cgi_wiki_store_mysql.t
 t/023_cgi_wiki_store_pg.t

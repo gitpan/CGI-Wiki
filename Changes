@@ -1,3 +1,12 @@
+0.46    14 August 2003
+        Fix for Shevek.  ->write_node used to croak if it failed to index
+          the backlinks, but since the MySQL varchar type is case-insensitive
+          by default, we were getting a duplicate key error.  As a temporary
+          fix pending a proper think about an explicit way for you to specify
+          whether you want your wiki case-sensitive or not (yes, people have
+          asked me for both), this now just warns if it has trouble writing
+          backlinks.
+
 0.45    11 August 2003
         Removed dependency on Class::Delegation.
         Fixed Makefile.PL to check for Lingua::Stem before trying to test

@@ -2,24 +2,24 @@ NAME
     CGI::Wiki - A toolkit for building Wikis.
 
 DESCRIPTION
-    Helps you develop Wikis quickly by taking care of the boring bits for
-    you. The aim is to allow different types of backend storage and search
-    without you having to worry about the details.
+    Helps you develop Wikis quickly by taking care of the boring bits
+    for you.  You will still need to write some code - this isn't an
+    instant Wiki.
+
+SEE ALSO
+    Tom Insam's CGI::Wiki::Kwiki is however an instant wiki, running
+    on a CGI::Wiki backend.
 
 SIGNIFICANT RECENT CHANGES
 
-0.38    17 May 2003
-        Added ->list_dangling_links method; thanks to Simon Cozens for
-          the idea.
+0.45    11 August 2003
+        Removed dependency on Class::Delegation.
 
-0.36    9 May 2003
-        Added CGI::Wiki::Plugin as a base class for plugins to inherit from.
+0.43    10 July 2003
+        Added metadata_isnt constraint to ->list_recent_changes.
 
-0.33    3 May 2003
-        Added ->fuzzy_title_match method to the Search::InvertedIndex backend
-          (CGI::Wiki::Search::SII).  You will need to re-index all existing
-          nodes in your wiki in order to take advantage of this (see the
-          Changes file for how).
+0.42    16 June 2003
+        Removed dependency on Test::Warn.
 
 SYNOPSIS
 
