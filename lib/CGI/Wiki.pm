@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.04;
+$VERSION = 0.05;
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -369,6 +369,8 @@ Various London.pm types helped out with code review, encouragement,
 JFDI, style advice, code snippets, module recommendations, and so on;
 far too many to name individually, but particularly Richard Clamp,
 Tony Fisher, Mark Fowler, and Chris Ball.
+
+blair christensen sent a patch, yay.
 
 And never forget to say thanks to those who wrote the stuff that your
 module depends on. Come claim beer or home-made cakes[0] at the next

@@ -163,8 +163,10 @@ if ( $config{Pg}{dbname} ) {
     $extras{'Test::MockObject'} = '0.07'; # earlier ones don't have mock()
     $extras{'Hook::LexWrap'} = 0;
 }
-if ( $config{sqlite} ) {
-    $extras{'DBD::SQLite'} = 0;
+if ( $config{SQLite}{dbname} ) {
+    $extras{'DBD::SQLite'} = '0.21'; # to make sure of the right DBI->errstr
+    $extras{'Test::MockObject'} = '0.07'; # earlier ones don't have mock()
+    $extras{'Hook::LexWrap'} = 0;
 }
 if ( $config{dbixfts} ) {
     $extras{'DBIx::FullTextSearch'} = '0.71'; # earlier ones buggy

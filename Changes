@@ -1,10 +1,14 @@
+0.05    17 November 2002
+        I'd uploaded an unfinished version by mistake.  One day I will figure
+          out how to do this upload thing without screwing up.
+
 0.04    17 November 2002
         Added a DBD::SQLite storage backend (thanks to blair christensen
           for a patch that makes up part of this).
         Added tests and docs for retrieval of old versions of pages
           (bad Kake, should have written those before implementing the
            feature; blair and Richard shamed me into getting it sorted now).
-        retrieve_node_and_checksum is now deprecated -- retrive_node is
+        retrieve_node_and_checksum is now deprecated -- retrieve_node is
           more clever and will return content only or a hash with content
           plus meta-data, according to context.  So you should get at the
           checksum via that.
