@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 =head1 NAME
 
@@ -531,10 +531,17 @@ sub delete_node {
       metadata_is    => { username => "Kake" }
   );
 
+  # Last 10 nodes that aren't minor edits.
+  my @nodes = $store->list_recent_changes(
+      last_n_changes => 5,
+      metadata_isnt  => { edit_type => "Minor tidying" }
+  );
+
 You must supply one of the following constraints: C<days> (integer),
-C<since> (epoch), C<last_n_changes> (integer). You may also supply a
-C<metadata_is> constraint, which should be a ref to a hash with a
-single key and value (see below for future plans).
+C<since> (epoch), C<last_n_changes> (integer). You may also supply one
+or both of a C<metadata_is> and a C<metadata_isnt> constraint. Each
+should be a ref to a hash with a single key and value (see below for
+future plans).
 
 Returns results as an array, in reverse chronological order.  Each
 element of the array is a reference to a hash with the following entries:
@@ -563,7 +570,7 @@ comments in that.
 B<Future plans and thoughts for list_recent_changes>
 
 This method will croak if you try to put more than one key/value in
-the metadata constraint hash, because the API for that is not yet
+the metadata constraint hashes, because the API for that is not yet
 decided. It'll be nice in the future to be able to do for example:
 
   # All pub nodes edited by Earle in the last week.
@@ -589,18 +596,24 @@ sub list_recent_changes {
     my %args = @_;
     if ($args{since}) {
         return $self->_find_recent_changes_by_criteria(
-            since       => $args{since},
-	    metadata_is => $args{metadata_is} );
+            since         => $args{since},
+	    metadata_is   => $args{metadata_is},
+	    metadata_isnt => $args{metadata_isnt},
+        );
     } elsif ( $args{days} ) {
         my $now = localtime;
 	my $then = $now - ( ONE_DAY * $args{days} );
         return $self->_find_recent_changes_by_criteria(
-            since       => $then,
-	    metadata_is => $args{metadata_is} );
+            since         => $then,
+	    metadata_is   => $args{metadata_is},
+	    metadata_isnt => $args{metadata_isnt},
+         );
     } elsif ( $args{last_n_changes} ) {
         return $self->_find_recent_changes_by_criteria(
-            limit       => $args{last_n_changes},
-	    metadata_is => $args{metadata_is} );
+            limit         => $args{last_n_changes},
+	    metadata_is   => $args{metadata_is},
+	    metadata_isnt => $args{metadata_isnt},
+        );
     } else {
 	croak "Need to supply a parameter";
     }
@@ -608,7 +621,8 @@ sub list_recent_changes {
 
 sub _find_recent_changes_by_criteria {
     my ($self, %args) = @_;
-    my ($since, $limit, $metadata_is) = @args{ qw( since limit metadata_is) };
+    my ($since, $limit, $metadata_is, $metadata_isnt) =
+                         @args{ qw( since limit metadata_is metadata_isnt) };
     my $dbh = $self->dbh;
 
     my @where;
@@ -627,6 +641,18 @@ sub _find_recent_changes_by_criteria {
           if ref $value;
 	push @where, "metadata.metadata_type=" . $dbh->quote($type);
 	push @where, "metadata.metadata_value=" . $dbh->quote($value);
+    }
+
+    if ( $metadata_isnt ) {
+        if ( scalar keys %$metadata_isnt > 1 ) {
+            croak "metadata_isnt criterion must have one key and one value only";
+	}
+        my ($type) = keys %$metadata_isnt;
+	my $value  = $metadata_isnt->{$type};
+        croak "metadata_isnt criterion must have one key and one value only"
+          if ref $value;
+	push @where, "metadata.metadata_type=" . $dbh->quote($type);
+	push @where, "metadata.metadata_value!=" . $dbh->quote($value);
     }
 
     my $sql = "SELECT DISTINCT node.name, node.version, node.modified

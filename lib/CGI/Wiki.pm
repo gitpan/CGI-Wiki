@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.42';
+$VERSION = '0.43';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -426,7 +426,8 @@ See the docs for your chosen formatter backend to see how these work.
 For a very quick Wiki startup without any of that icky programming
 stuff, see Max Maischein's L<CGI::Wiki::Simple>, which uses
 L<CGI::Wiki> with L<CGI::Application> to get you up and running in one
-or two minutes.
+or two minutes. There is also L<jerakeen's CGI::Wiki
+frontend|http://jerakeen.org/programming/CGI-Wiki>
 
 Or for the specialised application of a wiki about a city, see the
 L<OpenGuides> distribution.
@@ -552,16 +553,12 @@ reports.
 Max Maischein has set up a CGI::Wiki-based wiki describing various
 file formats, at L<http://www.corion.net/cgi-bin/wiki.cgi>
 
-I've set up a clone of grubstreet, a usemod wiki, at
-L<http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> -- it's not yet
-feature complete, but it's pure CGI::Wiki, using the new
-L<CGI::Wiki::Formatter::UseMod> formatter. Code is at
-L<http://the.earth.li/~kake/code/cgi-wiki-usemod-emulator/>
+L<OpenGuides> is based on CGI::Wiki
 
 =head1 GRATUITOUS PLUG
 
-I'm only obsessed with Wikis because of grubstreet, the Open Community
-Guide to London -- L<http://grault.net/grubstreet/>
+I'm only obsessed with Wikis because of the Open Guide to London --
+L<http://openguides.org/london/>
 
 =cut
 

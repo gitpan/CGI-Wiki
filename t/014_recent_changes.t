@@ -1,7 +1,7 @@
 use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (17*$CGI::Wiki::TestConfig::Utilities::num_combinations);
+use Test::More tests => (19*$CGI::Wiki::TestConfig::Utilities::num_combinations);
 
 # Test for each configured pair: $store, $search.
 my @tests = CGI::Wiki::TestConfig::Utilities->combinations;
@@ -11,7 +11,7 @@ foreach my $configref (@tests) {
         @testconfig{qw(store_name store search_name search configured)};
     SKIP: {
         skip "Store $store_name and search $search_name"
-	   . " not configured for testing", 17 unless $configured;
+	   . " not configured for testing", 19 unless $configured;
 
         print "#####\n##### Test config: STORE: $store_name, SEARCH: "
 	   . $search_name . "\n#####\n";
@@ -88,19 +88,29 @@ foreach my $configref (@tests) {
 	  unless $slept >= 1;
         %node_data = $wiki->retrieve_node("Node1");
 	$wiki->write_node("Node1", @node_data{qw( content checksum )},
-			  { username => "Kake" } );
+			  { username => "Kake" } )
+          or die "Couldn't write node";
 
         %node_data = $wiki->retrieve_node("Another Node");
-	$wiki->write_node("Node1", @node_data{qw( content checksum )},
-			  { username => "nou" } );
+	$wiki->write_node("Another Node", @node_data{qw( content checksum )},
+			  { username => "nou" } )
+          or die "Couldn't write node";
 
-        # We only actually expect a single result.
+        # Test metadata_is. (We only actually expect a single result.)
         @nodes = $wiki->list_recent_changes(
             last_n_changes => 2,
 	    metadata_is    => { username => "Kake" }
         );
         is( scalar @nodes, 1, "metadata_is does constrain the search" );
         is( $nodes[0]{name}, "Node1", "...correctly" );
+
+        # Test metadata_isnt.
+        @nodes = $wiki->list_recent_changes(
+            last_n_changes => 2,
+	    metadata_isnt  => { username => "Kake" }
+        );
+        is( scalar @nodes, 1, "metadata_isnt, too" );
+        is( $nodes[0]{name}, "Another Node", "...correctly" );
 
       SKIP: {
         skip "TODO", 2;

@@ -1,3 +1,6 @@
+0.43    10 July 2003
+        Added metadata_isnt constraint to ->list_recent_changes.
+
 0.42    16 June 2003
         Dropped Test::Warn from the dependencies - it's too much installing
           for too little gain (I was hardly using it).
