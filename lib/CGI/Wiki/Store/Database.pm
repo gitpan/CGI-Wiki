@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 =head1 NAME
 
@@ -185,28 +185,6 @@ sub _checksum {
                  . join("\0", sort @{$metadata{$key}} );
     }
     return md5_hex($string);
-}
-
-=item B<retrieve_node_and_checksum>
-
-  my ($content, $cksum) = $store->retrieve_node_and_checksum($node);
-
-Works just like retrieve_node would in scalar context, but also gives you
-a checksum that you must send back when you want to commit changes, so
-you can check that no other changes have been committed while you were
-editing.
-
-B<NOTE:> This is a convenience method supplied for backwards
-compatibility with 0.03, and will probably disappear at some point.
-Use C<retrieve_node> in list context, instead.
-
-=cut
-
-sub retrieve_node_and_checksum {
-    carp "retrieve_node_and_checksum is deprecated; please use retrieve_node in list context, instead";
-    my ($self, $node) = @_;
-    my %data = $self->retrieve_node($node) or return ();
-    return @data{ qw( content checksum ) };
 }
 
 =item B<node_exists>

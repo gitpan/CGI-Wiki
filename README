@@ -6,6 +6,11 @@ DESCRIPTION
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
+NOTE WHEN UPGRADING FROM PRE-0.24 VERSIONS
+
+There was a small interface change to list_recent_changes between
+versions 0.23 and 0.24 - see the 'Changes' file for details.
+
 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
 
 The database schema changed between versions 0.14 and 0.15, and again

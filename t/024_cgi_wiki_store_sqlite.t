@@ -46,9 +46,9 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
         my $node = $_[1];
         my $evil_store = $class->new( dbname => $dbname );
         my $evil_wiki = CGI::Wiki->new( store => $evil_store );
-        my ($content, $checksum) =
-            $evil_wiki->retrieve_node_and_checksum($node);
-        $evil_wiki->write_node($node, "foo", $checksum)
+        my %node_data =
+            $evil_wiki->retrieve_node($node);
+        $evil_wiki->write_node($node, "foo", $node_data{checksum})
             or die "Evil wiki got conflict on writing";
     };
 

@@ -1,3 +1,14 @@
+0.26    3 April 2003
+        Cleanup:
+          - Removed deprecated method retrieve_node_and_checksum.
+          - Added DBI as a prerequisite (ta Max).
+          - Fixed up the SEE ALSO in the pod.
+
+        Bugfix:
+          - The SQLite backend was failing tests with DBI 1.34 or up;
+            fixed now (with a kluge, but no worse than the one already there)
+            Thanks to DH for the test failure report.
+
 0.25    29 March 2003
         list_recent_changes can now filter on a single metadata criterion
           - multiple criteria coming soon.

@@ -8,7 +8,7 @@ use CGI::Wiki::Store::Database;
 use Carp qw/carp croak/;
 
 @ISA = qw( CGI::Wiki::Store::Database );
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 =head1 NAME
 
@@ -79,10 +79,11 @@ sub check_and_write_node {
         my $error = $@;
         $dbh->rollback;
 	$dbh->{AutoCommit} = 1;
-	if ($error =~ /database is locked/) {
+	if (   $error =~ /database is locked/
+            or $error =~ /DBI connect.+failed/ ) {
             return 0;
         } else {
-            croak $error;
+            croak "Unhandled error: [$error]";
         }
     } else {
         $dbh->commit;

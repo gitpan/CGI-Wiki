@@ -3,13 +3,13 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.25';
+$VERSION = '0.26';
 
 use CGI ":standard";
 use Carp qw(croak carp);
 use Digest::MD5 "md5_hex";
 use Class::Delegation
-    send => ['retrieve_node', 'retrieve_node_and_checksum', 'verify_checksum',
+    send => ['retrieve_node', 'verify_checksum',
              'list_all_nodes', 'list_recent_changes', 'node_exists',
              'list_backlinks', 'list_nodes_by_metadata'],
     to   => '_store',
@@ -307,8 +307,6 @@ backend, if any)
 
 =item * retrieve_node
 
-=item * retrieve_node_and_checksum (deprecated)
-
 =item * verify_checksum
 
 =back
@@ -339,6 +337,15 @@ See the docs for your chosen formatter backend to see how these work.
 
 =head1 SEE ALSO
 
+For a very quick Wiki startup without any of that icky programming
+stuff, see Max Maischein's L<CGI::Wiki::Simple>, which uses
+L<CGI::Wiki> with L<CGI::Application> to get you up and running in one
+or two minutes.
+
+L<CGI::Wiki> allows you to use different formatting modules. 
+L<Text::WikiFormat> might be useful for anyone wanting to write a
+custom formatter. Existing formatters include:
+
 =over 4
 
 =item * L<CGI::Wiki::Formatter::Default> (in this distro)
@@ -347,31 +354,58 @@ See the docs for your chosen formatter backend to see how these work.
 
 =item * L<CGI::Wiki::Formatter::UseMod>
 
+=back
+
+There's currently a choice of three storage backends - all
+database-backed, but flat file storage coming soon, once Ingy writes
+L<CGI::Kwiki> and I can steal his code :)
+
+=over 4
+
 =item * L<CGI::Wiki::Store::MySQL> (in this distro)
 
 =item * L<CGI::Wiki::Store::Pg> (in this distro)
 
 =item * L<CGI::Wiki::Store::SQLite> (in this distro)
 
-=item * L<CGI::Wiki::Store::Database> (in this distro)
+=item * L<CGI::Wiki::Store::Database> (parent class for the above - in this distro)
 
-=item * L<CGI::Wiki::Search::DBIxFTS> (in this distro)
+=back
 
-=item * L<CGI::Wiki::Search::SII> (in this distro)
+A search backend is optional:
+
+=over 4
+
+=item * L<CGI::Wiki::Search::DBIxFTS> (in this distro, uses L<DBIx::FullTextSearch>)
+
+=item * L<CGI::Wiki::Search::SII> (in this distro, uses L<Search::InvertedIndex>)
+
+=back
+
+Standalone plugins can also be written - currently they should only
+read from the backend storage, but write access guidelines are coming
+soon. I've only written one plugin so far:
+
+=over 4
+
+=item * L<CGI::Wiki::Plugin::Locator::UK>
+
+=back
+
+If writing a plugin you might want an easy way to run tests for it on
+all possible backends:
+
+=over 4
 
 =item * L<CGI::Wiki::TestConfig::Utilities> (in this distro)
-
-=item * L<DBIx::FullTextSearch>
-
-=item * L<Search::InvertedIndex>
-
-=item * L<Text::WikiFormat>
 
 =back
 
 Other ways to implement Wikis in Perl include:
 
 =over 4
+
+=item * L<CGI::Wiki::Simple> (based on L<CGI::Wiki>)
 
 =item * L<CGI::pWiki>
 
