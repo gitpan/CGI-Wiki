@@ -19,13 +19,19 @@ if ($CGI::Wiki::TestConfig::configured
    ) {
     print "\nFor the test suite, we use the database and user info\n"
         . "specified during the previous run.  If you want to change\n"
-        . "some or all of the values, run 'perl Makefile.PL -s'.\n\n";
+        . "some or all of the values, run 'perl Makefile.PL -s'.\n\n"
+        . "**** REMEMBER THAT THESE TESTS ARE DESTRUCTIVE.  ****\n"
+        . "**** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****\n"
+        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n\n";
 } else {
     print "\nYou should supply at least one set of options for testing,\n"
         . "preferably relevant to the backend(s) you intend to use live.\n"
         . "Running the tests under every possible backend combination is\n"
 	. "recommended.  To enter an undefined value, accept the empty\n"
-        . "string or explicitly enter 'undef'.\n";
+        . "string or explicitly enter 'undef'.\n\n"
+        . "****        THESE TESTS ARE DESTRUCTIVE.         ****\n"
+        . "**** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****\n"
+        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n\n";
 
     my %config;
 

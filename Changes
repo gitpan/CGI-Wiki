@@ -1,3 +1,9 @@
+0.39    21 May 2003
+        Amended Makefile.PL and INSTALL to make it absolutely clear that you
+          should not run the tests on databases containing valuable data.
+          Thanks to Rocco for, er, stress-testing this, and sorry to 'know'
+          for eating its brains...
+
 0.38    17 May 2003
         Added ->list_dangling_links method; thanks to Simon Cozens for
           the idea.

@@ -6,12 +6,6 @@ NOTES FOR UPGRADERS:
   databases.  I've not done any benchmarks on MySQL and SQLite yet,
   so I'm leaving those alone for now.
 
-  The database schema changed between versions 0.14 and 0.15, and again
-  between versions 0.16 and 0.20 - see the 'Changes' file for details.
-  This is really kinda important, please do check this out if you're
-  upgrading this module from a version prior to 0.20, or your code will
-  die when it tries to use any existing databases.
-
 HOW TO INSTALL THIS:
 
   This module can be installed just like any other standard Perl module:
@@ -29,6 +23,14 @@ HOW TO INSTALL THIS:
   it can use in the 'make test' stage - the default is to only run those
   tests that don't need external test databases. It is recommended that
   you test with as many backend combinations as your system will allow.
+
+
+         *****************************************************
+         ****        THESE TESTS ARE DESTRUCTIVE.         ****
+         **** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****
+         ****       OR EVER WILL CONTAIN LIVE DATA.       ****
+         *****************************************************
+
 
   For noninteractive installation, or to provide defaults for interactive
   installation, set the following environment variables to suitable values.

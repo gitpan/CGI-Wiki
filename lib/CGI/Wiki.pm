@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.38';
+$VERSION = '0.39';
 
 use CGI ":standard";
 use Carp qw(croak carp);
