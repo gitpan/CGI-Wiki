@@ -1,10 +1,10 @@
 NOTES FOR UPGRADERS:
 
   I added an index to the metadata table in the postgres setup in
-  version 0.31 - this really speeds up RecentChanges on larger wikis.
-  See the 'Changes' file for details on applying the index to existing
-  databases.  I've not done any benchmarks on MySQL and SQLite yet,
-  so I'm leaving those alone for now.
+  version 0.31 and in the MySQL setup in version 0.40 - this really
+  speeds up RecentChanges on larger wikis.  See the 'Changes' file
+  for details on applying the index to existing databases.  I've not
+  done any benchmarks on SQLite yet, so I'm leaving that alone for now.
 
 HOW TO INSTALL THIS:
 
@@ -26,9 +26,20 @@ HOW TO INSTALL THIS:
 
 
          *****************************************************
+         ****                                             ****
          ****        THESE TESTS ARE DESTRUCTIVE.         ****
          **** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****
          ****       OR EVER WILL CONTAIN LIVE DATA.       ****
+         ****                                             ****
+         *****************************************************
+
+         *****************************************************
+         ****                                             ****
+         ****  THE DATABASE VALUES YOU GIVE HERE WILL BE  ****
+         **** STORED IN CGI::Wiki::TestConfig AND WILL BE ****
+         ****    USED FOR FUTURE INSTALLS OF THIS AND     ****
+         ****             RELATED MODULES.                ****
+         ****                                             ****
          *****************************************************
 
 

@@ -22,7 +22,12 @@ if ($CGI::Wiki::TestConfig::configured
         . "some or all of the values, run 'perl Makefile.PL -s'.\n\n"
         . "**** REMEMBER THAT THESE TESTS ARE DESTRUCTIVE.  ****\n"
         . "**** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****\n"
-        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n\n";
+        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n"
+        . "****                                             ****\n"
+        . "**** THE DATABASE VALUES YOU GAVE PREVIOUSLY ARE ****\n"
+        . "**** STORED IN CGI::Wiki::TestConfig AND WILL BE ****\n"
+        . "****    USED FOR FUTURE INSTALLS OF THIS AND     ****\n"
+        . "****             RELATED MODULES.                ****\n\n";
 } else {
     print "\nYou should supply at least one set of options for testing,\n"
         . "preferably relevant to the backend(s) you intend to use live.\n"
@@ -31,7 +36,12 @@ if ($CGI::Wiki::TestConfig::configured
         . "string or explicitly enter 'undef'.\n\n"
         . "****        THESE TESTS ARE DESTRUCTIVE.         ****\n"
         . "**** DO NOT RUN THEM ON A DATABASE THAT CONTAINS ****\n"
-        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n\n";
+        . "****       OR EVER WILL CONTAIN LIVE DATA.       ****\n"
+        . "****                                             ****\n"
+        . "****  THE DATABASE VALUES YOU GIVE HERE WILL BE  ****\n"
+        . "**** STORED IN CGI::Wiki::TestConfig AND WILL BE ****\n"
+        . "****    USED FOR FUTURE INSTALLS OF THIS AND     ****\n"
+        . "****             RELATED MODULES.                ****\n\n";
 
     my %config;
 
@@ -47,8 +57,7 @@ if ($CGI::Wiki::TestConfig::configured
 	    $config{$store}{dbname} = $dbname;
             foreach my $var (qw(dbuser dbpass dbhost)) {
                 my $value = $ENV{"CGI_WIKI_".uc($store)."_".uc($var)};
-		if ($value and $value ne "undef") {
-  	            $config{$store}{$var} = $value;
+		if ($value and $value ne "undef") {  	            $config{$store}{$var} = $value;
 		} elsif ($value eq "undef") {
 		    $config{$store}{$var} = undef;
 		}

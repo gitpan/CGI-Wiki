@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.39';
+$VERSION = '0.40';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -30,19 +30,12 @@ Helps you develop Wikis quickly by taking care of the boring bits for
 you. The aim is to allow different types of backend storage and search
 without you having to worry about the details.
 
-=head1 NOTE FOR PEOPLE USING THE Search::InvertedIndex BACKEND
+=head1 NOTE FOR PEOPLE USING MYSQL
 
-Version 0.33 adds the capability for fuzzy title matching to
-L<CGI::Wiki::Search::SII>, but you will need to re-index all existing
-nodes in your wiki in order to take advantage of this (see the Changes
-file for how).
-
-=head1 NOTE FOR PEOPLE USING POSTGRES
-
-I added an index to the metadata table in version 0.31 - this really
-speeds up RecentChanges on larger wikis. See the Changes file for
-details on applying the index to existing databases.  I've not done
-any benchmarks on MySQL and SQLite yet, so I'm leaving those alone for now.
+I added an index to the metadata table in version 0.40 - again a great
+speedup of RecentChanges. See the Changes file for details on applying
+the index to existing databases. Still not benchmarked it on SQLite so
+no changes there.
 
 =head1 SYNOPSIS
 

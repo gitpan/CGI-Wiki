@@ -1,3 +1,14 @@
+0.40    24 May 2003
+        Added an index to the metadata table in the MySQL setup, to
+          speed up RecentChanges.  To apply this index to an existing
+          database you need to do (as the database superuser):
+
+          CREATE INDEX metadata_index ON metadata
+                       (node, version, metadata_type, metadata_value(10))
+
+        Also made the warnings in Makefile.PL and INSTALL stronger, since
+          we had another data-eating incident.
+
 0.39    21 May 2003
         Amended Makefile.PL and INSTALL to make it absolutely clear that you
           should not run the tests on databases containing valuable data.

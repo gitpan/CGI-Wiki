@@ -8,20 +8,18 @@ DESCRIPTION
 
 SIGNIFICANT RECENT CHANGES
 
+0.38    17 May 2003
+        Added ->list_dangling_links method; thanks to Simon Cozens for
+          the idea.
+
+0.36    9 May 2003
+        Added CGI::Wiki::Plugin as a base class for plugins to inherit from.
+
 0.33    3 May 2003
         Added ->fuzzy_title_match method to the Search::InvertedIndex backend
           (CGI::Wiki::Search::SII).  You will need to re-index all existing
           nodes in your wiki in order to take advantage of this (see the
           Changes file for how).
-
-0.30    22 April 2003
-        Added support for supplying 'host' parameter when connecting to
-          MySQL/Postgres databases (requested and assisted by Paul Makepeace).
-
-0.27    5 April 2003
-        Added ->reinitialise_stores method to CGI::Wiki::TestConfig::Utilities
-          to make it easier for plugins and so forth to make sure they have
-          nice virginal test stores before they start running their tests.
 
 SYNOPSIS
 

@@ -3,13 +3,13 @@ package CGI::Wiki::Setup::MySQL;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use DBI;
 use Carp;
 
 my %create_sql = (
-    node => "
+    node => [ qq|
 CREATE TABLE node (
   name      varchar(200) NOT NULL DEFAULT '',
   version   int(10)      NOT NULL default 0,
@@ -17,9 +17,9 @@ CREATE TABLE node (
   modified  datetime     default NULL,
   PRIMARY KEY (name)
 )
-",
+| ],
 
-    content => "
+    content => [ qq|
 CREATE TABLE content (
   name      varchar(200) NOT NULL default '',
   version   int(10)      NOT NULL default 0,
@@ -28,22 +28,24 @@ CREATE TABLE content (
   comment   mediumtext   NOT NULL default '',
   PRIMARY KEY (name, version)
 )
-",
-    internal_links => "
+| ],
+    internal_links => [ qq|
 CREATE TABLE internal_links (
   link_from varchar(200) NOT NULL default '',
   link_to   varchar(200) NOT NULL default '',
   PRIMARY KEY (link_from, link_to)
 )
-",
-    metadata => "
+| ],
+    metadata => [ qq|
 CREATE TABLE metadata (
   node           varchar(200) NOT NULL DEFAULT '',
   version        int(10)      NOT NULL default 0,
   metadata_type  varchar(200) NOT NULL DEFAULT '',
   metadata_value mediumtext   NOT NULL DEFAULT ''
 )
-"
+|, qq|
+CREATE INDEX metadata_index ON metadata(node, version, metadata_type, metadata_value(10))
+| ]
 );
 
 =head1 NAME
@@ -107,7 +109,9 @@ sub setup {
             print "Table $required already exists... skipping...\n";
         } else {
             print "Creating table $required... done\n";
-            $dbh->do($create_sql{$required}) or croak $dbh->errstr;
+            foreach my $sql ( @{ $create_sql{$required} } ) {
+                $dbh->do($sql) or croak $dbh->errstr;
+            }
         }
     }
 
