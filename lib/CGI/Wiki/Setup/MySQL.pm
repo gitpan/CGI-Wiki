@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::MySQL;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use DBI;
 use Carp;
@@ -85,7 +85,7 @@ again with a fresh database, run C<cleardb> first.
 =cut
 
 sub setup {
-    my ($dbname, $dbuser, $dbpass, $dbhost) = (@_);
+    my ($dbname, $dbuser, $dbpass, $dbhost) = _get_args(@_);
 
     my $dsn = "dbi:mysql:$dbname";
     $dsn .= ";host=$dbhost" if $dbhost;
@@ -139,7 +139,7 @@ which search backend you're using.
 =cut
 
 sub cleardb {
-    my ($dbname, $dbuser, $dbpass, $dbhost) = (@_);
+    my ($dbname, $dbuser, $dbpass, $dbhost) = _get_args(@_);
 
     my $dsn = "dbi:mysql:$dbname";
     $dsn .= ";host=$dbhost" if $dbhost;
@@ -157,7 +157,33 @@ sub cleardb {
     $dbh->disconnect;
 }
 
+sub _get_args {
+    if ( ref $_[0] ) {
+        my %hash = %{$_[0]};
+        return @hash{ qw( dbname dbuser dbpass dbhost ) };
+    } else {
+        return @_;
+    }
+}
+
 =back
+
+=head1 ALTERNATIVE CALLING SYNTAX
+
+As requested by Podmaster.  Instead of passing arguments to the methods as
+
+  ($dbname, $dbuser, $dbpass, $dbhost)
+
+you can pass them as
+
+  ( { dbname => $dbname,
+      dbuser => $dbuser,
+      dbpass => $dbpass,
+      dbhost => $dbhost
+    }
+  )
+
+Note that's a hashref, not a hash.
 
 =head1 AUTHOR
 

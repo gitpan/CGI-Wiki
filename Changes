@@ -1,3 +1,13 @@
+0.34    5 May 2003
+        Moving towards adding proper plugin support - the proposed API is
+          in Extending.pod, please take a look and send comments.
+        In preparation for the above, the metadata hash passed to ->write_node
+          can now contain more complex data structures - but these will *not*
+          be stored directly, just checksummed.  The way to access them will
+          be via plugins.  See 'perldoc CGI::Wiki;' for details.
+        Also added alternative calling syntax for the CGI::Wiki::Setup::*
+          store modules, as requested by Podmaster.
+
 0.33    3 May 2003
         Added ->fuzzy_title_match method to the Search::InvertedIndex backend
           (CGI::Wiki::Search::SII).  You will need to re-index all existing

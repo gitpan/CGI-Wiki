@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 =head1 NAME
 
@@ -113,8 +113,8 @@ The node parameter is mandatory. The version parameter is optional and
 defaults to the newest version. If the node hasn't been created yet,
 it is considered to exist but be empty (this behaviour might change).
 
-B<Note> on metadata - each hash value is an array ref, even if that
-type of metadata only has one value.
+B<Note> on metadata - each hash value is returned as an array ref,
+even if that type of metadata only has one value.
 
 =cut
 
@@ -179,6 +179,7 @@ sub _retrieve_node_content {
     return %data;
 }
 
+# Expects a hash as returned by ->retrieve_node
 sub _checksum {
     my ($self, %node_data) = @_;
     my $string = $node_data{content};
@@ -187,6 +188,22 @@ sub _checksum {
         $string .= "\0\0\0" . $key . "\0\0"
                  . join("\0", sort @{$metadata{$key}} );
     }
+    return md5_hex($string);
+}
+
+# Expects an array of hashes whose keys and values are scalars.
+sub _checksum_hashes {
+    my ($self, @hashes) = @_;
+    my @strings = "";
+    foreach my $hashref ( @hashes ) {
+        my %hash = %$hashref;
+        my $substring = "";
+        foreach my $key ( sort keys %hash ) {
+            $substring .= "\0\0" . $key . "\0" . $hash{$key};
+        }
+        push @strings, $substring;
+    }
+    my $string = join("\0\0\0", sort @strings);
     return md5_hex($string);
 }
 
@@ -288,8 +305,28 @@ calling C<list_backlinks> on the nodes in C<@links_to>. B<Note> that
 if you don't supply the ref then the store will assume that this node
 doesn't link to any others, and update itself accordingly.
 
-The metadata hashref is also optional, but if it is supplied then each
-of its keys must be either a scalar or a reference to an array of scalars.
+The metadata hashref is also optional.
+
+B<Note> on the metadata hashref: Any data in here that you wish to
+access directly later must be a key-value pair in which the value is
+either a scalar or a reference to an array of scalars.  For example:
+
+  $wiki->write_node( "Calthorpe Arms", "nice pub", $checksum,
+                     { category => [ "Pubs", "Bloomsbury" ],
+                       postcode => "WC1X 8JR" } );
+
+  # and later
+
+  my @nodes = $wiki->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value => "Pubs"             );
+
+For more advanced usage (passing data through to registered plugins)
+you may if you wish pass key-value pairs in which the value is a
+hashref or an array of hashrefs. The data in the hashrefs will not be
+stored as metadata; it will be checksummed and the checksum will be
+stored instead (as C<__metadatatypename__checksum>). Such data can
+I<only> be accessed via plugins.
 
 =cut
 
@@ -352,14 +389,41 @@ sub write_node_post_locking {
     my %metadata = %{ $metadata_ref || {} }; # default to no metadata
     foreach my $type ( keys %metadata ) {
         my $val = $metadata{$type};
-        my @values = ref $val ? @$val : ( $val );
-        my %unique = map { $_ => 1 } @values;
-        @values = keys %unique;
-        foreach my $value ( @values ) {
+
+        # We might have one or many values; make an array now to merge cases.
+        my @values = (ref $val and ref $val eq 'ARRAY') ? @$val : ( $val );
+
+        # Find out whether all values for this type are scalars.
+        my $all_scalars = 1;
+        foreach my $value (@values) {
+            $all_scalars = 0 if ref $value;
+	}
+
+        # If all values for this type are scalars, strip out any duplicates
+        # and store the data.
+        if ( $all_scalars ) {
+            my %unique = map { $_ => 1 } @values;
+            @values = keys %unique;
+
+            foreach my $value ( @values ) {
+                my $sql = "INSERT INTO metadata "
+                    . "(node, version, metadata_type, metadata_value) VALUES ("
+                    . join(", ", map { $dbh->quote($_) }
+                                 ( $node, $version, $type, $value )
+                          )
+                    . ")";
+	        $dbh->do($sql) or croak $dbh->errstr;
+	    }
+	} else {
+        # Otherwise grab a checksum and store that.
+            my $type_to_store  = "__" . $type . "__checksum";
+            my $value_to_store = $self->_checksum_hashes( @values );
             my $sql = "INSERT INTO metadata "
                     . "(node, version, metadata_type, metadata_value) VALUES ("
-                   . join(", ", map { $dbh->quote($_) }
-                                    ( $node, $version, $type, $value ) ) . ")";
+                    . join(", ", map { $dbh->quote($_) }
+                           ( $node, $version, $type_to_store, $value_to_store )
+                          )
+                    . ")";
 	    $dbh->do($sql) or croak $dbh->errstr;
 	}
     }

@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.33';
+$VERSION = '0.34';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -201,14 +201,31 @@ proved old, or your checksum has been accepted and your change
 committed.  If no checksum is supplied, and the node is found to
 already exist and be nonempty, a conflict will be raised.
 
-The first three parameters are mandatory. The metadata hashref is
-optional, but if it is supplied then each of its keys must be either a
-scalar or a reference to an array of scalars.
-
-(If you want to supply metadata but have no checksum (for a
-newly-created node), supply a checksum of C<undef>.)
+The first two parameters are mandatory, the others optional. If you
+want to supply metadata but have no checksum (for a newly-created
+node), supply a checksum of C<undef>.
 
 Returns 1 on success, 0 on conflict, croaks on error.
+
+B<Note> on the metadata hashref: Any data in here that you wish to
+access directly later must be a key-value pair in which the value is
+either a scalar or a reference to an array of scalars.  For example:
+
+  $wiki->write_node( "Calthorpe Arms", "nice pub", $checksum,
+                     { category => [ "Pubs", "Bloomsbury" ],
+                       postcode => "WC1X 8JR" } );
+
+  # and later
+
+  my @nodes = $wiki->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value => "Pubs"             );
+
+For more advanced usage (passing data through to registered plugins)
+you may if you wish pass key-value pairs in which the value is a
+hashref or an array of hashrefs. The data in the hashrefs will not be
+stored as metadata; it will be checksummed and the checksum will be
+stored instead. Such data can I<only> be accessed via plugins.
 
 =cut
 

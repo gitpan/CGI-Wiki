@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::SQLite;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 use DBI;
 use Carp;
@@ -79,7 +79,7 @@ again with a fresh database, run C<cleardb> first.
 =cut
 
 sub setup {
-    my $dbfile = shift;
+    my $dbfile = _get_args(@_);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbfile", "", "",
 			   { PrintError => 1, RaiseError => 1,
@@ -132,7 +132,7 @@ which search backend you're using.
 =cut
 
 sub cleardb {
-    my $dbfile = shift;
+    my $dbfile = _get_args(@_);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbfile", "", "",
 			   { PrintError => 1, RaiseError => 1,
@@ -152,7 +152,30 @@ sub cleardb {
     $dbh->disconnect;
 }
 
+sub _get_args {
+    if ( ref $_[0] ) {
+        my %hash = %{$_[0]};
+        return @hash{ qw( dbname ) };
+    } else {
+        return @_;
+    }
+}
+
 =back
+
+=head1 ALTERNATIVE CALLING SYNTAX
+
+As requested by Podmaster.  Instead of passing arguments to the methods as
+
+  ($dbfile)
+
+you can pass them as
+
+  ( { dbname => $dbfile
+    }
+  )
+
+Note that's a hashref, not a hash.
 
 =head1 AUTHOR
 
