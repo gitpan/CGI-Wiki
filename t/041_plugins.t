@@ -56,18 +56,17 @@ while ( ($store_name, $store) = each %stores ) {
                   metadata => $args{metadata}
                 };
                            }
-         );
+        );
 
-         $wiki->write_node( "041 Test Node 1", "foo", undef, {bar => "baz"} )
-             or die "Can't write node";
-         ok( $plugin->called("post_write"), "->post_write method called" );
+        $wiki->write_node( "041 Test Node 1", "foo", undef, {bar => "baz"} )
+            or die "Can't write node";
+        ok( $plugin->called("post_write"), "->post_write method called" );
 
-         my @seen = @{ $plugin->{__seen_nodes} };
-         is_deeply( $seen[0], { name => "041 Test Node 1",
-                                version => 1,
-                                content => "foo",
-                                metadata => { bar => "baz" } },
-                    "...with the right arguments" );
-
+        my @seen = @{ $plugin->{__seen_nodes} };
+        is_deeply( $seen[0], { name => "041 Test Node 1",
+                               version => 1,
+                               content => "foo",
+                               metadata => { bar => "baz" } },
+                   "...with the right arguments" );
     }
 }

@@ -55,4 +55,5 @@ t/031_formatting.t
 t/032_formatter_default.t
 t/041_plugins.t
 t/042_plugin_methods.t
+t/lib/CGI/Wiki/Plugin/Bar.pm
 t/lib/CGI/Wiki/Plugin/Foo.pm

@@ -1,3 +1,7 @@
+0.41    27 May 2003
+        Changed the order of things when registering a plugin, so the
+          on_register method can access the datastore properly.
+
 0.40    24 May 2003
         Added an index to the metadata table in the MySQL setup, to
           speed up RecentChanges.  To apply this index to an existing
