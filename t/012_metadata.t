@@ -1,14 +1,14 @@
 use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (12 * $CGI::Wiki::TestConfig::Utilities::num_stores);
+use Test::More tests => (14 * $CGI::Wiki::TestConfig::Utilities::num_stores);
 
 my %stores = CGI::Wiki::TestConfig::Utilities->stores;
 
 my ($store_name, $store);
 while ( ($store_name, $store) = each %stores ) {
     SKIP: {
-            skip "$store_name storage backend not configured for testing", 12
+            skip "$store_name storage backend not configured for testing", 14
             unless $store;
 
         print "#####\n##### Test config: STORE: $store_name\n#####\n";
@@ -28,10 +28,13 @@ while ( ($store_name, $store) = each %stores ) {
         is_deeply( [ sort @{$cats||[]} ],
 		   [ "Hammersmith", "Restaurant", "Thai Food" ],
 		   "...more complex metadata too" );
+
+        #### Test list_nodes_by_metadata.
         $wiki->write_node( "The Old Trout", "A pub", undef,
 	    { category => [ "Pub", "Hammersmith" ] } );
-	my @nodes = $wiki->list_nodes_by_metadata( metadata_type  => "category",
-                                       metadata_value => "Hammersmith" );
+	my @nodes = $wiki->list_nodes_by_metadata(
+            metadata_type  => "category",
+            metadata_value => "Hammersmith" );
         is_deeply( [ sort @nodes ], [ "Reun Thai", "The Old Trout" ],
 		   "list_nodes_by_metadata returns everything it should" );
         $wiki->write_node( "The Three Cups", "Another pub", undef,
@@ -40,6 +43,22 @@ while ( ($store_name, $store) = each %stores ) {
                                     metadata_value => "Pub" );
         is_deeply( [ sort @nodes ], [ "The Old Trout", "The Three Cups" ],
 		   "...and not things it shouldn't" );
+
+        # Case insensitivity option.
+        @nodes = $wiki->list_nodes_by_metadata(
+            metadata_type  => "category",
+            metadata_value => "hammersmith",
+            ignore_case    => 1,
+        );
+        is_deeply( [ sort @nodes ], [ "Reun Thai", "The Old Trout" ],
+                   "ignore_case => 1 ignores case of metadata_value" );
+        @nodes = $wiki->list_nodes_by_metadata(
+            metadata_type  => "Category",
+            metadata_value => "Hammersmith",
+            ignore_case    => 1,
+        );
+        is_deeply( [ sort @nodes ], [ "Reun Thai", "The Old Trout" ],
+                   "...and case of metadata_type" );
 
         %node = $wiki->retrieve_node("The Three Cups");
         $wiki->write_node( "The Three Cups", "Not a pub any more",

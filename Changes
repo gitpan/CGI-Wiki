@@ -1,3 +1,6 @@
+0.49    23 September 2003
+        Added "ignore_case" option to ->list_nodes_by_metadata
+
 0.48    22 September 2003
         Couple of small changes so I can write formatters that allow node
           metadata to affect the rendering of the node.

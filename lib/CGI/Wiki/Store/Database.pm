@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.19';
+$VERSION = '0.20';
 
 =head1 NAME
 
@@ -736,22 +736,32 @@ sub list_all_nodes {
 
 =item B<list_nodes_by_metadata>
 
-  # All nodes that Kake's watching.
+  # All documentation nodes.
   my @nodes = $store->list_nodes_by_metadata(
-      metadata_type  => "watched_by",
-      metadata_value => "Kake"              );
+      metadata_type  => "category",
+      metadata_value => "documentation",
+      ignore_case    => 1,   # optional but recommended (see below)
+  );
 
   # All pubs in Hammersmith.
   my @pubs = $store->list_nodes_by_metadata(
       metadata_type  => "category",
-      metadata_value => "Pub"              );
+      metadata_value => "Pub",
+  );
   my @hsm  = $store->list_nodes_by_metadata(
       metadata_type  => "category",
-      metadata_value  => "Hammersmith"     );
+      metadata_value  => "Hammersmith",
+  );
   my @results = my_l33t_method_for_ANDing_arrays( \@pubs, \@hsm );
 
 Returns a list containing the name of every node whose caller-supplied
 metadata matches the criteria given in the parameters.
+
+By default, the case-sensitivity of both C<metadata_type> and
+C<metadata_value> depends on your database - if it will return rows
+with an attribute value of "Pubs" when you asked for "pubs", or not.
+If you supply a true value to the C<ignore_case> parameter, then you
+can be sure of its being case-insensitive.  This is recommended.
 
 If you don't supply any criteria then you'll get an empty list.
 
@@ -765,14 +775,30 @@ sub list_nodes_by_metadata {
     my ($self, %args) = @_;
     my ( $type, $value ) = @args{ qw( metadata_type metadata_value ) };
     return () unless $type;
+
     my $dbh = $self->dbh;
-    my $sql = "SELECT node.name FROM node, metadata"
-            . " WHERE node.name=metadata.node"
-            . " AND node.version=metadata.version"
-            . " AND metadata.metadata_type = " . $dbh->quote($type)
-            . " AND metadata.metadata_value = " . $dbh->quote($value);
-    my $nodes = $dbh->selectall_arrayref($sql); 
-    return ( map { $_->[0] } (@$nodes) );
+    if ( $args{ignore_case} ) {
+        $type  = lc( $type  );
+        $value = lc( $value );
+    }
+    my $sql =
+         $self->_get_list_by_metadata_sql( ignore_case => $args{ignore_case} );
+    my $sth = $dbh->prepare( $sql );
+    $sth->execute( $type, $value );
+    my @nodes;
+    while ( my ($node) = $sth->fetchrow_array ) {
+        push @nodes, $node;
+    }
+    return @nodes;
+}
+
+sub _get_list_by_metadata_sql {
+    # can be over-ridden by database-specific subclasses
+    return "SELECT node.name FROM node, metadata"
+         . " WHERE node.name=metadata.node"
+         . " AND node.version=metadata.version"
+         . " AND metadata.metadata_type = ? "
+         . " AND metadata.metadata_value = ? ";
 }
 
 =item B<dbh>

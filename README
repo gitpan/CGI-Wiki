@@ -12,14 +12,17 @@ SEE ALSO
 
 SIGNIFICANT RECENT CHANGES
 
+0.49    23 September 2003
+        Added "ignore_case" option to ->list_nodes_by_metadata
+
+0.47    29 August 2003
+        Added metadata_was and metadata_wasnt options to ->list_recent_changes
+
 0.45    11 August 2003
         Removed dependency on Class::Delegation.
 
 0.43    10 July 2003
         Added metadata_isnt constraint to ->list_recent_changes.
-
-0.42    16 June 2003
-        Removed dependency on Test::Warn.
 
 SYNOPSIS
 

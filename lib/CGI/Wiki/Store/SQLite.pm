@@ -8,7 +8,7 @@ use CGI::Wiki::Store::Database;
 use Carp qw/carp croak/;
 
 @ISA = qw( CGI::Wiki::Store::Database );
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 =head1 NAME
 
@@ -34,8 +34,7 @@ sub _dsn {
 
   my $store = CGI::Wiki::Store::SQLite->new( dbname => "wiki" );
 
-The dbname parameter is mandatory. If you want defaults done for you
-then get at it via CGI::Wiki instead.
+The dbname parameter is mandatory.
 
 =cut
 
@@ -92,5 +91,21 @@ sub check_and_write_node {
     }
 }
 
+sub _get_list_by_metadata_sql {
+    my ($self, %args) = @_;
+    if ( $args{ignore_case} ) {
+        return "SELECT node.name FROM node, metadata"
+             . " WHERE node.name=metadata.node"
+             . " AND node.version=metadata.version"
+             . " AND metadata.metadata_type LIKE ? "
+             . " AND metadata.metadata_value LIKE ? ";
+    } else {
+        return "SELECT node.name FROM node, metadata"
+             . " WHERE node.name=metadata.node"
+             . " AND node.version=metadata.version"
+             . " AND metadata.metadata_type = ? "
+             . " AND metadata.metadata_value = ? ";
+    }
+}
 
 1;
