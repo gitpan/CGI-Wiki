@@ -1,3 +1,7 @@
+0.37    12 May 2003
+        Oh dear.  No real changes, but I moved Extending.pod to stop it
+          getting installed as CGI::Extending.  Sorry.
+
 0.36    9 May 2003
         Added CGI::Wiki::Plugin as a base class for plugins to inherit from.
 
