@@ -40,6 +40,7 @@ t/005_setup_mysql_search_invertedindex.t
 t/006_setup_db_file_search_invertedindex.t
 t/011_cgi_wiki.t
 t/012_metadata.t
+t/013_deletion.t
 t/021_cgi_wiki_store_database.t
 t/022_cgi_wiki_store_mysql.t
 t/023_cgi_wiki_store_pg.t

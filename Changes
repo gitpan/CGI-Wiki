@@ -1,3 +1,7 @@
+0.23    17 March 2003
+        Fixed bug - metadata wasn't getting deleted when ->delete_node
+          was called.
+
 0.22    8 March 2003
         Rejig of the way the tests work, in preparation for allowing
           third-party plugins:

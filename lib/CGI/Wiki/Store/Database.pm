@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 =head1 NAME
 
@@ -410,12 +410,15 @@ except Wiki admins call this. Removes all the node's history as well.
 sub delete_node {
     my ($self, $node) = @_;
     my $dbh = $self->dbh;
+    my $name = $dbh->quote($node);
     # Should start a transaction here.  FIXME.
-    my $sql = "DELETE FROM node WHERE name=" . $dbh->quote($node);
+    my $sql = "DELETE FROM node WHERE name=$name";
     $dbh->do($sql) or croak "Deletion failed: " . DBI->errstr;
-    $sql = "DELETE FROM content WHERE name=" . $dbh->quote($node);
+    $sql = "DELETE FROM content WHERE name=$name";
     $dbh->do($sql) or croak "Deletion failed: " . DBI->errstr;
-    $sql = "DELETE FROM internal_links WHERE link_from=" . $dbh->quote($node);
+    $sql = "DELETE FROM internal_links WHERE link_from=$name";
+    $dbh->do($sql) or croak $dbh->errstr;
+    $sql = "DELETE FROM metadata WHERE node=$name";
     $dbh->do($sql) or croak $dbh->errstr;
     # And finish it here.
     return 1;
