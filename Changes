@@ -1,3 +1,15 @@
+0.22    8 March 2003
+        Rejig of the way the tests work, in preparation for allowing
+          third-party plugins:
+
+            When 'perl Makefile.PL' is run on a CGI::Wiki distribution,
+            information will be gathered about test databases etc that
+            can be used for running tests. CGI::Wiki::TestConfig::Utilities
+            gives you convenient access to this information, so you can
+            easily write and run tests for your own CGI::Wiki plugins.
+
+        No functionality changes.
+
 0.21    6 March 2003
         Purely a documentation update; thanks to Alex McLintock for comments.
 

@@ -1,8 +1,8 @@
 local $^W = 1;
 use strict;
-use Test::More tests => 404;
+use CGI::Wiki::TestConfig::Utilities;
+use Test::More tests => (5 + 57*$CGI::Wiki::TestConfig::Utilities::num_combinations);
 use Test::Warn;
-use CGI::Wiki::TestConfig;
 
 ##### Test whether we can be 'use'd with no warnings.
 BEGIN {
@@ -27,97 +27,17 @@ eval { CGI::Wiki->new;
 ok( $@, "Creation dies if no store supplied" );
 
 # Test for each configured pair: $store, $search.
-my %config = %CGI::Wiki::TestConfig::config;
-# This way of doing it is probably really ugly, but better that than
-# sitting here agonising for ever.
-my @tests;
-push @tests, { store  => "CGI::Wiki::Store::MySQL",
-	       search => undef,
-	       config => $config{MySQL},
-	       do     => ( $config{MySQL}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::MySQL",
-	       search => "CGI::Wiki::Search::DBIxFTS",
-	       config => $config{MySQL},
-	       do     => ( $config{MySQL}{dbname}
-                           and $config{dbixfts} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::MySQL",
-	       search => "CGI::Wiki::Search::SII",
-	       config => $config{MySQL},
-	       do     => ( $config{MySQL}{dbname}
-                           and $config{search_invertedindex} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::Pg",
-	       search => undef,
-	       config => $config{Pg},
-	       do     => ( $config{Pg}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::Pg",
-	       search => "CGI::Wiki::Search::SII",
-	       config => $config{Pg},
-	       do     => ( $config{Pg}{dbname}
-                           and $config{search_invertedindex} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::SQLite",
-	       search => undef,
-	       config => $config{SQLite},
-	       do     => ( $config{SQLite}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::SQLite",
-	       search => "CGI::Wiki::Search::SII",
-	       config => $config{SQLite},
-	       do     => ( $config{SQLite}{dbname}
-                           and $config{search_invertedindex} ? 1 : 0 ) };
-
+my @tests = CGI::Wiki::TestConfig::Utilities->combinations;
 foreach my $configref (@tests) {
     my %testconfig = %$configref;
-    my ( $store_class, $search_class ) = @testconfig{qw(store search)};
+    my ( $store_name, $store, $search_name, $search, $configured ) =
+        @testconfig{qw(store_name store search_name search configured)};
     SKIP: {
-        skip "Store $store_class and search "
-	   . ( defined $search_class ? $search_class : "undef" )
-	   . " not configured for testing", 57 unless $testconfig{do};
+        skip "Store $store_name and search $search_name"
+	   . " not configured for testing", 57 unless $configured;
 
-        print "#####\n##### Test config: STORE: $store_class, SEARCH: "
-	   . ( defined $search_class ? $search_class : "undef" ) . "\n#####\n";
-
-	##### Grab working db/user/pass.
-	my $dbname = $testconfig{config}{dbname};
-	my $dbuser = $testconfig{config}{dbuser};
-	my $dbpass = $testconfig{config}{dbpass};
-
-	eval "require $store_class";
-	my $store = $store_class->new( dbname => $dbname,
-				       dbuser => $dbuser,
-				       dbpass => $dbpass )
-	  or die "Couldn't set up test store";
-	my $search;
-	if ( $search_class ) {
-	    eval "require $search_class";
-	    my %search_config;
-	    if ( $search_class eq "CGI::Wiki::Search::DBIxFTS" ) {
-	        # DBIxFTS only works with MySQL.
-	        require DBI;
-	        my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass);
-		%search_config = ( dbh => $dbh );
-	    } elsif ( $search_class eq "CGI::Wiki::Search::SII" ) {
-  	        if ( $store_class eq "CGI::Wiki::Store::MySQL" ) {
-                    # If we can test the MySQL SII backend, do so.
-                    my $indexdb = Search::InvertedIndex::DB::Mysql->new(
-                       -db_name    => $dbname,
-                       -username   => $dbuser,
-                       -password   => $dbpass,
-	   	       -hostname   => '',
-                       -table_name => 'siindex',
-                       -lock_mode  => 'EX' );
-		    %search_config = ( indexdb => $indexdb );
-		} else {
-                    # Otherwise just test the default DB_File backend.
-                    my $indexdb = Search::InvertedIndex::DB::DB_File_SplitHash->new(
-                       -map_name  => 't/sii-db-file-test.db',
-                       -lock_mode  => 'EX' );
-		    %search_config = ( indexdb => $indexdb );
-                }
-	    } else {
-	        die "Whoops, don't know how to set up a $search_class";
-            }
-	    $search = $search_class->new( %search_config )
-	      or die "Couldn't set up test search";
-	}
+        print "#####\n##### Test config: STORE: $store_name, SEARCH: "
+	   . $search_name . "\n#####\n";
 
         ##### Test succesful creation.
         my $wiki = CGI::Wiki->new( store          => $store,
@@ -206,7 +126,7 @@ foreach my $configref (@tests) {
     	      "...and the OR search seems to work" );
 
             SKIP: {
-                skip "Search backend $search_class doesn't support"
+                skip "Search backend $search_name doesn't support"
 		   . " phrase searches", 2
 	            unless $wiki->supports_phrase_searches;
 

@@ -6,7 +6,7 @@ DESCRIPTION
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
-=head1 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
+IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
 
 The database schema changed between versions 0.14 and 0.15, and again
 between versions 0.16 and 0.20 - see the 'Changes' file for details. 
@@ -14,6 +14,11 @@ This is really kinda important, please do check this out or your code
 will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
+
+0.22    8 March 2003
+        Rejig of the way the tests work, in preparation for allowing
+          third-party plugins.  'perldoc CGI::Wiki::TestConfig::Utilities'
+          for details.
 
 0.20    22 February 2003
         Added simple metadata support.  Another database schema change;

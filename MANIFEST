@@ -30,6 +30,7 @@ lib/CGI/Wiki/Store/Database.pm
 lib/CGI/Wiki/Store/MySQL.pm
 lib/CGI/Wiki/Store/Pg.pm
 lib/CGI/Wiki/Store/SQLite.pm
+lib/CGI/Wiki/TestConfig/Utilities.pm
 lib/CGI/Wiki.pm
 t/001_setup_mysql.t
 t/002_setup_pg.t

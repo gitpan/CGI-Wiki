@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -358,6 +358,8 @@ See the docs for your chosen formatter backend to see how these work.
 =item * L<CGI::Wiki::Search::DBIxFTS> (in this distro)
 
 =item * L<CGI::Wiki::Search::SII> (in this distro)
+
+=item * L<CGI::Wiki::TestConfig::Utilities> (in this distro)
 
 =item * L<DBIx::FullTextSearch>
 

@@ -1,4 +1,8 @@
 
+- Enhance CGI::Wiki::TestConfig::Utilities; make all the core CGI::Wiki
+  tests use it, give it a method for returning names of temporary files
+  used so we can put them in our Makefile.PLs for cleanup.
+
 - Stemming and phrase searches for the Search::InvertedIndex backends.
 
 - Add plugin support - see my use.perl journal or the grubstreet archives.

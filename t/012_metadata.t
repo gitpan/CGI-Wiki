@@ -1,48 +1,21 @@
-local $^W = 1;
 use strict;
-use Test::More tests => 36;
 use CGI::Wiki;
-use CGI::Wiki::TestConfig;
+use CGI::Wiki::TestConfig::Utilities;
+use Test::More tests => (12 * $CGI::Wiki::TestConfig::Utilities::num_stores);
 
-# Test for each configured storage backend.
-my %config = %CGI::Wiki::TestConfig::config;
-# This way of doing it is probably really ugly, but better that than
-# sitting here agonising for ever.
-my @tests;
-push @tests, { store  => "CGI::Wiki::Store::MySQL",
-	       config => $config{MySQL},
-	       do     => ( $config{MySQL}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::Pg",
-	       config => $config{Pg},
-	       do     => ( $config{Pg}{dbname} ? 1 : 0 ) };
-push @tests, { store  => "CGI::Wiki::Store::SQLite",
-	       config => $config{SQLite},
-	       do     => ( $config{SQLite}{dbname} ? 1 : 0 ) };
+my %stores = CGI::Wiki::TestConfig::Utilities->stores;
 
-foreach my $configref (@tests) {
-    my %testconfig = %$configref;
-    my $store_class = $testconfig{store};
+my ($store_name, $store);
+while ( ($store_name, $store) = each %stores ) {
     SKIP: {
-        skip "Store $store_class"
-	   . " not configured for testing", 12 unless $testconfig{do};
+            skip "$store_name storage backend not configured for testing", 12
+            unless $store;
 
-        print "#####\n##### Test config: STORE: $store_class\n#####\n";
-
-	##### Grab working db/user/pass.
-	my $dbname = $testconfig{config}{dbname};
-	my $dbuser = $testconfig{config}{dbuser};
-	my $dbpass = $testconfig{config}{dbpass};
-
-	eval "require $store_class";
-	my $store = $store_class->new( dbname => $dbname,
-				       dbuser => $dbuser,
-				       dbpass => $dbpass )
-	  or die "Couldn't set up test store";
+        print "#####\n##### Test config: STORE: $store_name\n#####\n";
 
         my $wiki = CGI::Wiki->new( store => $store );
         isa_ok( $wiki, "CGI::Wiki" );
 
-        ####  Here's the start of the real tests.
         $wiki->write_node( "Reun Thai", "A restaurant", undef,
             { postcode => "W6 9PL",
               category => [ "Thai Food", "Restaurant", "Hammersmith" ] } );
