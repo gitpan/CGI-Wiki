@@ -18,6 +18,7 @@ examples/templates/recent_changes.tt
 examples/templates/search_results.tt
 examples/templates/site_index.tt
 examples/wiki.cgi
+lib/CGI/Wiki/Formatter/Default.pm
 lib/CGI/Wiki/Search/DBIxFTS.pm
 lib/CGI/Wiki/Search/SII.pm
 lib/CGI/Wiki/Setup/DBIxFTSMySQL.pm

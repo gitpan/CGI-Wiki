@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 =head1 NAME
 
@@ -107,14 +107,11 @@ sub search_nodes {
     my $result = $self->{_map}->search( -query => $query );
 
     my $num_results = $result->number_of_index_entries || 0;
-print "# Num results: $num_results\n";
     my %results;
     for my $i ( 1 .. $num_results ) {
         my ($index, $data, $ranking) = $result->entry( -number => $i - 1 );
-print "# Index: $index Ranking: $ranking\n";
 	$results{$index} = $ranking;
     }
-print "# Got " . scalar(keys %results) . " results\n";
     return %results;
 }
 
@@ -132,7 +129,6 @@ sub index_node {
     croak "Must supply a node name" unless $node;
     croak "Must supply node content" unless $content;
 
-    print "# Indexing content: $content\n";
     my @keys = grep { length > 1             # ignore single characters
                       and ! /^\W*$/ }        # and things composed entirely
                                              #   of non-word characters

@@ -3,12 +3,10 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 use CGI ":standard";
 use Carp qw(croak carp);
-use Text::WikiFormat as => 'wikiformat';
-use HTML::PullParser;
 use Digest::MD5 "md5_hex";
 use Class::Delegation
     send => ['retrieve_node', 'retrieve_node_and_checksum', 'verify_checksum',
@@ -18,6 +16,8 @@ use Class::Delegation
     to   => ['_store', '_search'],
     send => ['search_nodes', 'supports_phrase_searches'],
     to   => '_search',
+    send => 'format',
+    to   => '_formatter'
     ;
 
 =head1 NAME
@@ -37,9 +37,12 @@ see the 'Changes' file for details.
 
 =head1 SYNOPSIS
 
-  my $store  = CGI::Wiki::Store::MySQL->new( ... );
-  my $search = CGI::Wiki::Search::SII->new( ... );
-  my $wiki   = CGI::Wiki->new(%config); # See below for parameter details
+  my $store     = CGI::Wiki::Store::MySQL->new( ... );
+  my $search    = CGI::Wiki::Search::SII->new( ... );
+  my $formatter = My::HomeMade::Formatter->new;
+  my $wiki   = CGI::Wiki->new( store     => $store,
+                               search    => $search,
+                               formatter => $formatter );
   my $q      = CGI->new;
   my $action = $q->param("action");
   my $node   = $q->param("node");
@@ -72,41 +75,35 @@ see the 'Changes' file for details.
 
 =item B<new>
 
-  my $store  = CGI::Wiki::Store::MySQL->new( ... );
-  my $search = CGI::Wiki::Search::SII->new( ... );
-  my %config = ( store           => $store,    # mandatory
-                 search          => $search,   # defaults to undef
-                 extended_links  => 0,
-                 implicit_links  => 1,
-                 allowed_tags    => [qw(b i)], # defaults to none
-                 macros          => {},
-	         node_prefix     => 'wiki.cgi?node=' );
-
+  my $store     = CGI::Wiki::Store::MySQL->new( ... );
+  my $search    = CGI::Wiki::Search::SII->new( ... );
+  my $formatter = CGI::Wiki::Formatter::Default->new( ... );
+  my %config = ( store     => $store,     # mandatory
+                 search    => $search,    # defaults to undef
+                 formatter => $formatter ); # defaults to ::Default
 
   my $wiki = CGI::Wiki->new(%config);
 
 C<store> must be an object of type C<CGI::Wiki::Store::*> and
 C<search> if supplied must be of type C<CGI::Wiki::Search::*> (though
-this isn't checked yet - FIXME).
+this isn't checked yet - FIXME). If C<formatter> isn't supplied, it
+defaults to an object of class L<CGI::Wiki::Formatter::Default>.
 
-The other parameters will default to the values shown above (apart from
-C<allowed_tags>, which defaults to allowing no tags).
+C<formatter> can be any object that behaves in the right way; this
+essentially means that it needs to provide a C<format> method which
+takes in raw text and returns the formatted version. See
+L<CGI::Wiki::Formatter::Default> for an example. Note that you can
+create a suitable object from a sub very quickly by using
+L<Test::MockObject> like so:
 
-=over 4
+  my $formatter = Test::MockObject->new();
+  $formatter->mock( 'format', sub { my ($self, $raw) = @_;
+                                    return uc( $raw );
+                                  } );
 
-=item * macros - be aware that macros are processed I<after> filtering
-out disallowed HTML tags.  Currently macros are just strings, maybe later
-we can add in subs if we think it might be useful.
-
-=back
-
-Macro example:
-
-  macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
- 	        qq(<form action="wiki.cgi" method="get">
-                   <input type="hidden" name="action" value="search">
-                   <input type="text" size="20" name="terms">
-                   <input type="submit"></form>) }
+I'm not sure whether to put this in the module or not - it'd let you
+just supply a sub instead of an object as the formatter, but it feels
+wrong to be using a Test::* module in actual code.
 
 =cut
 
@@ -131,70 +128,24 @@ sub _init {
 
     croak "No store supplied" unless $args{store};
 
-    # Store the parameters or their defaults.
-    my %defs = ( store           => undef, # won't be used but we need the key
-		 search          => undef,
-		 extended_links  => 0,
-	         implicit_links  => 1,
-		 allowed_tags    => [],
-		 macros          => {},
-	         node_prefix     => 'wiki.cgi?node=',
-	       );
+    foreach my $k ( qw( store search formatter ) ) {
+        $self->{"_".$k} = $args{$k};
+    }
 
-    my %collated = (%defs, %args);
-    foreach my $k (keys %defs) {
-        $self->{"_".$k} = $collated{$k};
+    # Make a default formatter object if none was actually supplied.
+    unless ( $args{formatter} ) {
+        require CGI::Wiki::Formatter::Default;
+        # Ensure backwards compatibility - versions prior to 0.11 allowed the
+        # following options to alter the default behaviour of Text::WikiFormat.
+        my %config;
+        foreach ( qw( extended_links implicit_links allowed_tags
+		    macros node_prefix ) ) {
+            $config{$_} = $args{$_} if defined $args{$_};
+	}
+        $self->{_formatter} = CGI::Wiki::Formatter::Default->new( %config );
     }
 
     return $self;
-}
-
-=item B<format>
-
-  my $html = $wiki->format($submitted_content);
-
-Escapes any tags which weren't specified as allowed on creation, then
-interpolates any macros, then calls Text::WikiFormat::format (with the
-config set up when B<new> was called) to translate the raw Wiki
-language supplied into HTML.
-
-=cut
-
-sub format {
-    my ($self, $raw) = @_;
-    my $safe = "";
-
-    my %allowed = map {lc($_) => 1, "/".lc($_) => 1} @{$self->{_allowed_tags}};
-
-    if (scalar keys %allowed) {
-        # If we are allowing some HTML, parse and get rid of the nasties.
-	my $parser = HTML::PullParser->new(doc   => $raw,
-					   start => '"TAG", tag, text',
-					   end   => '"TAG", tag, text',
-					   text  => '"TEXT", tag, text');
-	while (my $token = $parser->get_token) {
-            my ($flag, $tag, $text) = @$token;
-	    if ($flag eq "TAG" and !defined $allowed{lc($tag)}) {
-	        $safe .= CGI::escapeHTML($text);
-	    } else {
-                $safe .= $text;
-            }
-        }
-    } else {
-        # Else just escape everything.
-        $safe = CGI::escapeHTML($raw);
-    }
-
-    # Now process any macros.
-    my %macros = %{$self->{_macros}};
-    foreach my $regexp (keys %macros) {
-        $safe =~ s/$regexp/$macros{$regexp}/g;
-    }
-
-    return wikiformat($safe, {},
-		      { extended       => $self->{_extended_links},
-			prefix         => $self->{_node_prefix},
-			implicit_links => $self->{_implicit_links} } );
 }
 
 =item B<write_node>
@@ -303,11 +254,23 @@ See the docs for your chosen search backend to see how these work.
 
 =back
 
+=item B<Methods provided by formatter backend>
+
+See the docs for your chosen formatter backend to see how these work.
+
+=over 4
+
+=item * format
+
+=back
+
 =back
 
 =head1 SEE ALSO
 
 =over 4
+
+=item * L<CGI::Wiki::Formatter::Default>
 
 =item * L<CGI::Wiki::Store::MySQL>
 
@@ -356,12 +319,7 @@ patches, send me tests.  Or if it doesn't suck, tell me that too.  I
 love getting mail, even if all it says is "I used your thing and I
 like it", or "I didn't use your thing because of X".
 
-I will buy beer or cider (two pints, litres, or similarly-sized bottles
-of, not exchangeable for lager or other girly drinks, will probably
-need to be claimed in person in whichever city I'm in at the time) for
-the first three people to send me such mail. (Note: there's I<still> one
-of these rewards left; kudos to blair christensen and Clint Moore for
-winning the first two.)
+blair christensen, Clint Moore and Max Maischein won the beer.
 
 =head1 CREDITS
 
@@ -370,7 +328,8 @@ JFDI, style advice, code snippets, module recommendations, and so on;
 far too many to name individually, but particularly Richard Clamp,
 Tony Fisher, Mark Fowler, and Chris Ball.
 
-blair christensen sent a patch, yay.
+blair christensen sent patches and gave me some good ideas.  chromatic
+patiently applied my patches to L<Text::WikiFormat>.
 
 And never forget to say thanks to those who wrote the stuff that your
 module depends on. Come claim beer or home-made cakes[0] at the next

@@ -1,7 +1,8 @@
 use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig;
-use Test::More tests => 2;
+use Test::More tests => 8;
+use Test::MockObject;
 
 my ($skip, %config);
 if ($CGI::Wiki::TestConfig::config{MySQL}->{dbname}) {
@@ -20,14 +21,27 @@ if ($CGI::Wiki::TestConfig::config{MySQL}->{dbname}) {
 SKIP: {
     skip "No storage backends configured for testing", 2 if $skip;
 
-    # Test that the implicit_links flag gets passed through right.
-    my $raw = "This paragraph has StudlyCaps in.";
-    my ($wiki, $cooked);
+    # Set up a store to test with.
     my $store_class = $config{store_class};
     eval "require $store_class";
     my $store = $store_class->new( dbname => $config{dbname},
 				   dbuser => $config{dbuser},
 				   dbpass => $config{dbpass} );
+
+    my ($wiki, $cooked);
+
+    # Test that a Wiki object created without an explicit formatter sets
+    # defaults sensibly in its default formatter.
+    $wiki = CGI::Wiki->new( store => $store );
+    # White box testing.
+    foreach my $want_defined ( qw ( extended_links implicit_links
+				    allowed_tags macros node_prefix ) ) {
+        ok( defined $wiki->{_formatter}{"_".$want_defined},
+	    "...default set for $want_defined" );
+    }
+
+    # Test that the implicit_links flag gets passed through right.
+    my $raw = "This paragraph has StudlyCaps in.";
     $wiki = CGI::Wiki->new( store           => $store,
 			    implicit_links  => 1,
 			    node_prefix     => "wiki.cgi?node=" );
@@ -43,4 +57,14 @@ SKIP: {
     $cooked = $wiki->format($raw);
     unlike( $cooked, qr!StudlyCaps</a>!,
 	    "...but not when we specify implicit_links=0" );
+
+    # Test that we can use an alternative formatter.
+    my $mock = Test::MockObject->new();
+    $mock->mock( 'format', sub { my ($self, $raw) = @_; return uc( $raw ); } );
+    $wiki = CGI::Wiki->new( store     => $store,
+                            formatter => $mock );
+    $cooked = $wiki->format( "in the [future] there will be <b>robots</b>" );
+    is( $cooked, "IN THE [FUTURE] THERE WILL BE <B>ROBOTS</B>",
+        "can use an alternative formatter" );
+
 }

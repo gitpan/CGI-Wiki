@@ -178,13 +178,11 @@ if ( $config{MySQL}{dbname} ) {
 }
 if ( $config{Pg}{dbname} ) {
     $extras{'DBD::Pg'} = 0;
-    $extras{'Test::MockObject'} = '0.07'; # earlier ones don't have mock()
-    $extras{'Hook::LexWrap'} = 0;
+    $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{SQLite}{dbname} ) {
     $extras{'DBD::SQLite'} = '0.21'; # to make sure of the right DBI->errstr
-    $extras{'Test::MockObject'} = '0.07'; # earlier ones don't have mock()
-    $extras{'Hook::LexWrap'} = 0;
+    $extras{'Hook::LexWrap'} = 0; # for testing
 }
 if ( $config{dbixfts} ) {
     $extras{'DBIx::FullTextSearch'} = '0.71'; # earlier ones buggy
@@ -198,6 +196,7 @@ WriteMakefile( NAME         => "CGI::Wiki",
 				 'Digest::MD5' => 0,
 			         'Test::More' => 0,
 			         'Test::Warn' => 0,
+                                 'Test::MockObject' =>'0.07',#earlier no mock()
 			         'Class::Delegation' => 0,
 			         'Time::Piece' => 0,
 			         %extras },

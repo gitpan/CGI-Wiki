@@ -11,9 +11,12 @@ IMPORTANT NOTE
     the 'Changes' file for details.
 
 SYNOPSIS
-      my $store  = CGI::Wiki::Store::MySQL->new( ... );
-      my $search = CGI::Wiki::Search::SII->new( ... );
-      my $wiki   = CGI::Wiki->new(%config); # See below for parameter details
+      my $store     = CGI::Wiki::Store::MySQL->new( ... );
+      my $search    = CGI::Wiki::Search::SII->new( ... );
+      my $formatter = My::HomeMade::Formatter->new;
+      my $wiki   = CGI::Wiki->new( store     => $store,
+                                   search    => $search,
+                                   formatter => $formatter );
       my $q      = CGI->new;
       my $action = $q->param("action");
       my $node   = $q->param("node");
@@ -42,44 +45,35 @@ SYNOPSIS
 
 METHODS
     new
-          my $store  = CGI::Wiki::Store::MySQL->new( ... );
-          my $search = CGI::Wiki::Search::SII->new( ... );
-          my %config = ( store           => $store,    # mandatory
-                         search          => $search,   # defaults to undef
-                         extended_links  => 0,
-                         implicit_links  => 1,
-                         allowed_tags    => [qw(b i)], # defaults to none
-                         macros          => {},
-                         node_prefix     => 'wiki.cgi?node=' );
+          my $store     = CGI::Wiki::Store::MySQL->new( ... );
+          my $search    = CGI::Wiki::Search::SII->new( ... );
+          my $formatter = CGI::Wiki::Formatter::Default->new( ... );
+          my %config = ( store     => $store,     # mandatory
+                         search    => $search,    # defaults to undef
+                         formatter => $formatter ); # defaults to ::Default
 
           my $wiki = CGI::Wiki->new(%config);
 
         "store" must be an object of type "CGI::Wiki::Store::*" and "search"
         if supplied must be of type "CGI::Wiki::Search::*" (though this
-        isn't checked yet - FIXME).
+        isn't checked yet - FIXME). If "formatter" isn't supplied, it
+        defaults to an object of class CGI::Wiki::Formatter::Default.
 
-        The other parameters will default to the values shown above (apart
-        from "allowed_tags", which defaults to allowing no tags).
+        "formatter" can be any object that behaves in the right way; this
+        essentially means that it needs to provide a "format" method which
+        takes in raw text and returns the formatted version. See
+        CGI::Wiki::Formatter::Default for an example. Note that you can
+        create a suitable object from a sub very quickly by using
+        Test::MockObject like so:
 
-        * macros - be aware that macros are processed *after* filtering out
-        disallowed HTML tags. Currently macros are just strings, maybe later
-        we can add in subs if we think it might be useful.
+          my $formatter = Test::MockObject->new();
+          $formatter->mock( 'format', sub { my ($self, $raw) = @_;
+                                            return uc( $raw );
+                                          } );
 
-        Macro example:
-
-          macros => { qr/(^|\b)\@SEARCHBOX(\b|$)/ =>
-                        qq(<form action="wiki.cgi" method="get">
-                           <input type="hidden" name="action" value="search">
-                           <input type="text" size="20" name="terms">
-                           <input type="submit"></form>) }
-
-    format
-          my $html = $wiki->format($submitted_content);
-
-        Escapes any tags which weren't specified as allowed on creation,
-        then interpolates any macros, then calls Text::WikiFormat::format
-        (with the config set up when new was called) to translate the raw
-        Wiki language supplied into HTML.
+        I'm not sure whether to put this in the module or not - it'd let you
+        just supply a sub instead of an object as the formatter, but it
+        feels wrong to be using a Test::* module in actual code.
 
     write_node
           my $written = $wiki->write_node($node, $content, $checksum);
@@ -132,7 +126,14 @@ METHODS
         * search_nodes
         * supports_phrase_searches
 
+    Methods provided by formatter backend
+        See the docs for your chosen formatter backend to see how these
+        work.
+
+        * format
+
 SEE ALSO
+    * CGI::Wiki::Formatter::Default
     * CGI::Wiki::Store::MySQL
     * CGI::Wiki::Store::Pg
     * CGI::Wiki::Store::SQLite
@@ -163,12 +164,7 @@ FEEDBACK
     getting mail, even if all it says is "I used your thing and I like it",
     or "I didn't use your thing because of X".
 
-    I will buy beer or cider (two pints, litres, or similarly-sized bottles
-    of, not exchangeable for lager or other girly drinks, will probably need
-    to be claimed in person in whichever city I'm in at the time) for the
-    first three people to send me such mail. (Note: there's *still* one of
-    these rewards left; kudos to blair christensen and Clint Moore for
-    winning the first two.)
+    blair christensen, Clint Moore and Max Maischein won the beer.
 
 CREDITS
     Various London.pm types helped out with code review, encouragement,
@@ -176,7 +172,8 @@ CREDITS
     far too many to name individually, but particularly Richard Clamp, Tony
     Fisher, Mark Fowler, and Chris Ball.
 
-    blair christensen sent a patch, yay.
+    blair christensen sent patches and gave me some good ideas. chromatic
+    patiently applied my patches to Text::WikiFormat.
 
     And never forget to say thanks to those who wrote the stuff that your
     module depends on. Come claim beer or home-made cakes[0] at the next
