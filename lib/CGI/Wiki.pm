@@ -3,22 +3,11 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.44';
+$VERSION = '0.45';
 
 use CGI ":standard";
 use Carp qw(croak carp);
 use Digest::MD5 "md5_hex";
-use Class::Delegation
-    send => ['retrieve_node', 'verify_checksum',
-             'list_all_nodes', 'list_recent_changes', 'node_exists',
-             'list_backlinks', 'list_dangling_links',
-             'list_nodes_by_metadata'],
-    to   => '_store',
-    send => 'delete_node',
-    to   => ['_store', '_search'],
-    send => ['search_nodes', 'supports_phrase_searches', 'fuzzy_title_match'],
-    to   => '_search',
-    ;
 
 =head1 NAME
 
@@ -27,15 +16,7 @@ CGI::Wiki - A toolkit for building Wikis.
 =head1 DESCRIPTION
 
 Helps you develop Wikis quickly by taking care of the boring bits for
-you. The aim is to allow different types of backend storage and search
-without you having to worry about the details.
-
-=head1 NOTE FOR PEOPLE USING MYSQL
-
-I added an index to the metadata table in version 0.40 - again a great
-speedup of RecentChanges. See the Changes file for details on applying
-the index to existing databases. Still not benchmarked it on SQLite so
-no changes there.
+you.  You will still need to write some code - this isn't an instant Wiki.
 
 =head1 SYNOPSIS
 
@@ -119,7 +100,7 @@ learn the details.
 C<formatter> can be any object that behaves in the right way; this
 essentially means that it needs to provide a C<format> method which
 takes in raw text and returns the formatted version. See
-L<CGI::Wiki::Formatter::Default> for an example. Note that you can
+L<CGI::Wiki::Formatter::Default> for a simple example. Note that you can
 create a suitable object from a sub very quickly by using
 L<Test::MockObject> like so:
 
@@ -176,6 +157,327 @@ sub _init {
     $self->{_registered_plugins} = [ ];
 
     return $self;
+}
+
+=item B<retrieve_node>
+
+  my $content = $wiki->retrieve_node($node);
+
+  # Or get additional data about the node as well.
+  my %node = $wiki->retrieve_node("HomePage");
+  print "Current Version: " . $node{version};
+
+  # Maybe we stored some of our own custom metadata too.
+  my $categories = $node{metadata}{category};
+  print "Categories: " . join(", ", @$categories);
+  print "Postcode: $node{metadata}{postcode}[0]";
+
+  # Or get an earlier version:
+  my %node = $wiki->retrieve_node( name    => "HomePage",
+                                   version => 2,
+                                  );
+  print $node{content};
+
+In scalar context, returns the current (raw Wiki language) contents of
+the specified node. In list context, returns a hash containing the
+contents of the node plus additional data:
+
+=over 4
+
+=item B<last_modified>
+
+=item B<version>
+
+=item B<checksum>
+
+=item B<metadata> - a reference to a hash containing any caller-supplied
+metadata sent along the last time the node was written
+
+=back
+
+The C<node> parameter is mandatory. The C<version> parameter is
+optional and defaults to the newest version. If the node hasn't been
+created yet, it is considered to exist but be empty (this behaviour
+might change).
+
+B<Note> on metadata - each hash value is returned as an array ref,
+even if that type of metadata only has one value.
+
+=cut
+
+sub retrieve_node {
+    my ($self, @args) = @_;
+    $self->store->retrieve_node( @args );
+}
+
+=item B<verify_checksum>
+
+  my $ok = $wiki->verify_checksum($node, $checksum);
+
+Sees whether your checksum is current for the given node. Returns true
+if so, false if not.
+
+B<NOTE:> Be aware that when called directly and without locking, this
+might not be accurate, since there is a small window between the
+checking and the returning where the node might be changed, so
+B<don't> rely on it for safe commits; use C<write_node> for that. It
+can however be useful when previewing edits, for example.
+
+=cut
+
+sub verify_checksum {
+    my ($self, @args) = @_;
+    $self->store->verify_checksum( @args );
+}
+
+=item B<list_backlinks>
+
+  # List all nodes that link to the Home Page.
+  my @links = $wiki->list_backlinks( node => "Home Page" );
+
+=cut
+
+sub list_backlinks {
+    my ($self, @args) = @_;
+    $self->store->list_backlinks( @args );
+}
+
+=item B<list_dangling_links>
+
+  # List all nodes that have been linked to from other nodes but don't
+  # yet exist.
+  my @links = $wiki->list_dangling_links;
+
+Each node is returned once only, regardless of how many other nodes
+link to it.
+
+=cut
+
+sub list_dangling_links {
+    my ($self, @args) = @_;
+    $self->store->list_dangling_links( @args );
+}
+
+=item B<list_all_nodes>
+
+  my @nodes = $wiki->list_all_nodes;
+
+Returns a list containing the name of every existing node.  The list
+won't be in any kind of order; do any sorting in your calling script.
+
+=cut
+
+sub list_all_nodes {
+    my ($self, @args) = @_;
+    $self->store->list_all_nodes( @args );
+}
+
+=item B<list_nodes_by_metadata>
+
+  # All nodes that Kake's watching.
+  my @nodes = $wiki->list_nodes_by_metadata(
+      metadata_type  => "watched_by",
+      metadata_value => "Kake"              );
+
+  # All pubs in Hammersmith.
+  my @pubs = $wiki->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value => "Pub"              );
+  my @hsm  = $wiki->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value  => "Hammersmith"     );
+  my @results = my_l33t_method_for_ANDing_arrays( \@pubs, \@hsm );
+
+Returns a list containing the name of every node whose caller-supplied
+metadata matches the criteria given in the parameters.
+
+If you don't supply any criteria then you'll get an empty list.
+
+This is a really really really simple way of finding things; if you
+want to be more complicated then you'll need to call the method
+multiple times and combine the results yourself, or write a plugin.
+
+=cut
+
+sub list_nodes_by_metadata {
+    my ($self, @args) = @_;
+    $self->store->list_nodes_by_metadata( @args );
+}
+
+=item B<list_recent_changes>
+
+  # Changes in last 7 days.
+  my @nodes = $wiki->list_recent_changes( days => 7 );
+
+  # Changes since a given time.
+  my @nodes = $wiki->list_recent_changes( since => 1036235131 );
+
+  # Most recent change and its details.
+  my @nodes = $wiki->list_recent_changes( last_n_changes => 1 );
+  print "Node:          $nodes[0]{name}";
+  print "Last modified: $nodes[0]{last_modified}";
+  print "Comment:       $nodes[0]{metadata}{comment}";
+
+  # Last 5 nodes edited by Kake.
+  my @nodes = $wiki->list_recent_changes(
+      last_n_changes => 5,
+      metadata_is    => { username => "Kake" }
+  );
+
+  # Last 10 nodes that aren't minor edits.
+  my @nodes = $wiki->list_recent_changes(
+      last_n_changes => 5,
+      metadata_isnt  => { edit_type => "Minor tidying" }
+  );
+
+You must supply one of the following constraints: C<days> (integer),
+C<since> (epoch), C<last_n_changes> (integer). You may also supply one
+or both of a C<metadata_is> and a C<metadata_isnt> constraint. Each
+should be a ref to a hash with a single key and value (see below for
+future plans).
+
+Returns results as an array, in reverse chronological order.  Each
+element of the array is a reference to a hash with the following entries:
+
+=over 4
+
+=item * B<name>: the name of the node
+
+=item * B<version>: the latest version number
+
+=item * B<last_modified>: the timestamp of when it was last modified
+
+=item * B<metadata>: a ref to a hash containing any metadata attached
+to the current version of the node
+
+=back
+
+Each node will only be returned once, regardless of how many times it
+has been changed recently.
+
+=cut
+
+sub list_recent_changes {
+    my ($self, @args) = @_;
+    $self->store->list_recent_changes( @args );
+}
+
+=item B<node_exists>
+
+  if ( $wiki->node_exists( "Wombat Defenestration" ) {
+      # do something about the weird people infesting your wiki
+  } else {
+      # ah, safe, no weirdos here
+  }
+
+Returns true if the node has ever been created (even if it is
+currently empty), and false otherwise.
+
+=cut
+
+sub node_exists {
+    my ($self, @args) = @_;
+    $self->store->node_exists( @args );
+}
+
+=item B<delete_node>
+
+  $wiki->delete_node($node);
+
+Deletes the node completely, including removing all its history. 
+Doesn't do any locking though - to fix? You probably don't want to let
+anyone except Wiki admins call this. You may not want to use it at
+all.
+
+Croaks on error, silently does nothing if the node doesn't exist,
+returns true if no error.
+
+=cut
+
+sub delete_node {
+    my ($self, $node) = @_;
+    return 1 unless $self->node_exists( $node );
+    $self->store->delete_node( $node );
+    $self->search_obj->delete_node( $node ) if $self->search_obj;
+    return 1;
+}
+
+=item B<search_nodes>
+
+  # Find all the nodes which contain the word 'expert'.
+  my %results = $wiki->search_nodes('expert');
+
+Returns a (possibly empty) hash whose keys are the node names and
+whose values are the scores in some kind of relevance-scoring system I
+haven't entirely come up with yet. For OR searches, this could
+initially be the number of terms that appear in the node, perhaps.
+
+Defaults to AND searches (if $and_or is not supplied, or is anything
+other than C<OR> or C<or>).
+
+Searches are case-insensitive.
+
+Croaks if you haven't defined a search backend.
+
+=cut
+
+sub search_nodes {
+    my ($self, @args) = @_;
+    if ( $self->search_obj ) {
+        $self->search_obj->search_nodes( @args );
+    } else {
+        croak "No search backend defined.";
+    }
+}
+
+=item B<supports_phrase_searches>
+
+  if ( $wiki->supports_phrase_searches ) {
+      return $wiki->search_nodes( '"fox in socks"' );
+  }
+
+Returns true if your chosen search backend supports phrase searching,
+and false otherwise.
+
+=cut
+
+sub supports_phrase_searches {
+    my ($self, @args) = @_;
+    $self->search_obj->supports_phrase_searches( @args ) if $self->search_obj;
+}
+
+=item B<fuzzy_title_match>
+
+B<NOTE:> This section of the documentation assumes you are using the
+L<CGI::Wiki::Search::SII> backend; this feature has not yet been
+implemented for the L<CGI::Wiki::Search::DBIxFTS> backend.
+
+  $wiki->write_node( "King's Cross St Pancras", "A station." );
+  my %matches = $wiki->fuzzy_title_match( "Kings Cross St. Pancras" );
+
+Returns a (possibly empty) hash whose keys are the node names and
+whose values are the scores in some kind of relevance-scoring system I
+haven't entirely come up with yet.
+
+Note that even if an exact match is found, any other similar enough
+matches will also be returned. However, any exact match is guaranteed
+to have the highest relevance score.
+
+The matching is done against "canonicalised" forms of the search
+string and the node titles in the database: stripping vowels, repeated
+letters and non-word characters, and lowercasing.
+
+Croaks if you haven't defined a search backend.
+
+=cut
+
+sub fuzzy_title_match {
+    my ($self, @args) = @_;
+    if ( $self->search_obj ) {
+        $self->search_obj->fuzzy_title_match( @args );
+    } else {
+        croak "No search backend defined.";
+    }
 }
 
 =item B<register_plugin>
@@ -366,68 +668,11 @@ sub formatter {
     return $self->{_formatter};
 }
 
-# Now for the things that are provided by the various plugins.
-
-=item B<Methods provided by storage backend>
-
-See the docs for your chosen storage backend to see how these work.
-
-=over 4
-
-=item * delete_node (also calls the delete_node method in the search
-backend, if any)
-
-=item * list_all_nodes
-
-=item * list_backlinks
-
-=item * list_dangling_links
-
-=item * list_nodes_by_metadata
-
-=item * list_recent_changes
-
-=item * node_exists
-
-=item * retrieve_node
-
-=item * verify_checksum
-
-=back
-
-=item B<Methods provided by search backend>
-
-See the docs for your chosen search backend to see how these work.
-
-=over 4
-
-=item * fuzzy_title_match (only works with L<CGI::Wiki::Search::SII>)
-
-=item * search_nodes
-
-=item * supports_phrase_searches
-
-=back
-
-=item B<Methods provided by formatter backend>
-
-See the docs for your chosen formatter backend to see how these work.
-
-=over 4
-
-=item * format
-
-=back
-
-=back
-
 =head1 SEE ALSO
 
 For a very quick Wiki startup without any of that icky programming
-stuff, see Max Maischein's L<CGI::Wiki::Simple>, which uses
-L<CGI::Wiki> with L<CGI::Application> to get you up and running in one
-or two minutes. There is also L<jerakeen's CGI::Wiki
-frontend|http://jerakeen.org/programming/CGI-Wiki>
+stuff, see Tom Insam's L<CGI::Wiki::Kwiki>, an instant wiki based on
+CGI::Wiki.
 
 Or for the specialised application of a wiki about a city, see the
 L<OpenGuides> distribution.
@@ -479,6 +724,8 @@ soon. Plugins written so far and available from CPAN:
 
 =item * L<CGI::Wiki::Plugin::GeoCache>
 
+=item * L<CGI::Wiki::Plugin::Categoriser>
+
 =item * L<CGI::Wiki::Plugin::Locator::UK>
 
 =item * L<CGI::Wiki::Plugin::RSS::ModWiki>
@@ -497,8 +744,6 @@ all possible backends:
 Other ways to implement Wikis in Perl include:
 
 =over 4
-
-=item * L<CGI::Wiki::Simple> (based on L<CGI::Wiki>)
 
 =item * L<CGI::Kwiki> (an instant wiki)
 
@@ -543,17 +788,11 @@ far too many to name individually, but particularly Richard Clamp,
 Tony Fisher, Mark Fowler, and Chris Ball.
 
 blair christensen sent patches and gave me some good ideas. chromatic
-continues to patiently apply my patches to L<Text::WikiFormat>. Paul
-Makepeace helped me add support for connecting to non-local databases.
-The grubstreet team keep me well-supplied with encouragement and bug
-reports.
-
-=head1 CGI::WIKI IN ACTION!
-
-Max Maischein has set up a CGI::Wiki-based wiki describing various
-file formats, at L<http://www.corion.net/cgi-bin/wiki.cgi>
-
-L<OpenGuides> is based on CGI::Wiki
+continues to patiently apply my patches to L<Text::WikiFormat> and
+help me get it working in just the way I need. Paul Makepeace helped
+me add support for connecting to non-local databases. Shevek has been
+prodding me a lot lately. The L<OpenGuides> team keep me well-supplied
+with encouragement and bug reports.
 
 =head1 GRATUITOUS PLUG
 

@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 =head1 NAME
 
@@ -297,21 +297,6 @@ sub list_dangling_links {
     return @links;
 }
 
-=item B<write_node_after_locking>
-
-Deprecated, use C<write_node_post_locking> instead. This is still here
-for now as a wrapper but it will go away soon.
-
-=cut
-
-sub write_node_after_locking {
-    carp "write_node_after_locking is deprecated; please use write_node_post_locking instead";
-    my ($self, $node, $content, $links_to_ref) = @_;
-    return $self->write_node_post_locking( node     => $node,
-                                           content  => $content,
-                                           links_to => $links_to_ref );
-}
-
 =item B<write_node_post_locking>
 
   $store->write_node_post_locking( node     => $node,
@@ -369,7 +354,6 @@ sub write_node_post_locking {
 
     my $timestamp = $self->_get_timestamp();
     my @links_to = @{ $links_to_ref || [] }; # default to empty array
-    my $comment = ""; # Not implemented yet.
     my $version;
 
     # Either inserting a new page or updating an old one.
@@ -398,10 +382,10 @@ sub write_node_post_locking {
     }
 
     # In either case we need to add to the history.
-    $sql = "INSERT INTO content (name, version, text, modified, comment)
+    $sql = "INSERT INTO content (name, version, text, modified)
             VALUES ("
          . join(", ", map { $dbh->quote($_) }
-		          ($node, $version, $content, $timestamp, $comment)
+		          ($node, $version, $content, $timestamp)
                )
          . ")";
     $dbh->do($sql) or croak "Error updating database: " . DBI->errstr;
@@ -733,8 +717,7 @@ If you don't supply any criteria then you'll get an empty list.
 
 This is a really really really simple way of finding things; if you
 want to be more complicated then you'll need to call the method
-multiple times and combine the results yourself. Or write a plugin,
-when I get around to adding support for that.
+multiple times and combine the results yourself, or write a plugin.
 
 =cut
 

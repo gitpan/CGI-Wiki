@@ -137,15 +137,17 @@ if ($CGI::Wiki::TestConfig::configured
 
 # If we have a MySQL store configured, we can test the DBIx::FullTextSearch
 # search backend.
-eval { require DBIx::FullTextSearch; };
+eval { require DBIx::FullTextSearch;
+       require Lingua::Stem;
+};
 my $fts_inst = $@ ? 0 : 1;
 if ($CGI::Wiki::TestConfig::config{MySQL}{dbname} and $fts_inst) {
-    print "You have DBIx::FullTextSearch installed and a MySQL store\n";
-    print "configured... configuring for test...\n\n";
+    print "You have DBIx::FullTextSearch and Lingua::Stem installed,\n";
+    print " and a MySQL store configured... configuring for test...\n\n";
     $CGI::Wiki::TestConfig::config{dbixfts} = 1;
 } else {
-    print "Either DBIx::FullTextSearch not installed or no MySQL store\n";
-    print "configured... so won't test that...\n\n";
+    print "Either DBIx::FullTextSearch or Lingua::Stem not installed,\n";
+    print "or no MySQL store configured... so won't test that...\n\n";
     $CGI::Wiki::TestConfig::config{dbixfts} = undef;
 }
 
@@ -210,7 +212,6 @@ WriteMakefile( NAME         => "CGI::Wiki",
 				 'Digest::MD5' => 0,
 			         'Test::More' => 0,
                                  'Test::MockObject' =>'0.07',#earlier no mock()
-			         'Class::Delegation' => 0,
 			         'Time::Piece' => 0,
 			         %extras },
                EXE_FILES => [ "bin/cgi-wiki-setupdb" ],

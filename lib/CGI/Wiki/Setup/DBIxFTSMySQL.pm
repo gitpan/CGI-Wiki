@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::DBIxFTSMySQL;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 use DBI;
 use DBIx::FullTextSearch;
@@ -16,7 +16,9 @@ CGI::Wiki::Setup::DBIxFTSMySQL - set up fulltext indexes for CGI::Wiki
 =head1 SYNOPSIS
 
   use CGI::Wiki::Setup::DBIxFTSMySQL;
-  CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass);
+  CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass, $dbhost);
+
+Omit $dbhost if the database is local.
 
 =head1 DESCRIPTION
 
@@ -24,6 +26,8 @@ Set up DBIx::FullTextSearch indexes for use with CGI::Wiki. Has only
 one function, C<setup>, which takes as arguments the database name,
 the username and the password. The username must be able to create and
 drop tables in the database.
+
+The $dbhost argument is optional -- omit it if the database is local.
 
 Note that any pre-existing L<CGI::Wiki> indexes stored in the database
 will be I<cleared> by this function, so if you have existing data you
@@ -33,11 +37,14 @@ probably want to use the C<store> parameter to get it re-indexed.
 
 sub setup
 {
-  my ($dbname, $dbuser, $dbpass) = (@_);
+  my ($dbname, $dbuser, $dbpass, $dbhost) = (@_);
 
-  my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,
-			 { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
-    or croak DBI::errstr;
+    my $dsn = "dbi:mysql:$dbname";
+    $dsn .= ";host=$dbhost" if $dbhost;
+    my $dbh = DBI->connect($dsn, $dbuser, $dbpass,
+			   { PrintError => 1, RaiseError => 1,
+			     AutoCommit => 1 } )
+      or croak DBI::errstr;
 
   # Drop FTS indexes if they already exist.
   my $fts = DBIx::FullTextSearch->open($dbh, "_content_and_title_fts");

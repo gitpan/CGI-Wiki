@@ -7,8 +7,9 @@ my $testing = $CGI::Wiki::TestConfig::config{dbixfts};
 if ($testing) {
     require CGI::Wiki::Setup::DBIxFTSMySQL;
     my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
-    my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
-    CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass);
+    my ($dbname, $dbuser, $dbpass, $dbhost) =
+                                     @config{qw(dbname dbuser dbpass dbhost)};
+    CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass, $dbhost);
 }
 
 SKIP: {

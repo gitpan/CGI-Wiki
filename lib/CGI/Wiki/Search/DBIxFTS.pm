@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 =head1 NAME
 
@@ -136,7 +136,8 @@ sub index_node {
   $search->delete_node($node);
 
 Removes the given node from the search indexes.  NOTE: It's up to you to
-make sure the node is removed from the backend store.  Croaks on error.
+make sure the node is removed from the backend store.  Croaks on error,
+returns true on success.
 
 =cut
 
@@ -147,8 +148,11 @@ sub delete_node {
         or croak "Can't open _content_and_title_fts";
     my $fts_titles = DBIx::FullTextSearch->open($dbh, "_title_fts")
         or croak "Can't open _title_fts";
-    $fts_all->delete_document($node) or croak "Couldn't delete from index";
-    $fts_titles->delete_document($node) or croak "Couldn't delete from index";
+    eval { $fts_all->delete_document($node); };
+    croak "Couldn't delete from full index: $@" if $@;
+    eval { $fts_titles->delete_document($node); };
+    croak "Couldn't delete from title-only index: $@" if $@;
+    return 1;
 }
 
 =item B<supports_phrase_searches>

@@ -14,18 +14,20 @@ if ($testing) {
     require CGI::Wiki::Store::MySQL;
 
     my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
-    my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+    my ($dbname, $dbuser, $dbpass, $dbhost) =
+                                     @config{qw(dbname dbuser dbpass dbhost)};
     my $indexdb = Search::InvertedIndex::DB::Mysql->new(
                    -db_name    => $dbname,
                    -username   => $dbuser,
                    -password   => $dbpass,
-		   -hostname   => '',
+		   -hostname   => $dbhost,
                    -table_name => 'siindex',
                    -lock_mode  => 'EX' );
 
     my $store = CGI::Wiki::Store::MySQL->new( dbname => $dbname,
 					      dbuser => $dbuser,
-					      dbpass => $dbpass );
+					      dbpass => $dbpass,
+                                              dbhost => $dbhost );
 
     CGI::Wiki::Setup::SII::setup( indexdb => $indexdb, store => $store );
 }

@@ -36,7 +36,9 @@ if ($testing) {
     eval "require $store_class";
     my $store = $store_class->new( dbname => $store_config{dbname},
 				   dbuser => $store_config{dbuser},
-				   dbpass => $store_config{dbpass} );
+				   dbpass => $store_config{dbpass},
+				   dbhost => $store_config{dbhost},
+                                 );
 
     CGI::Wiki::Setup::SII::setup( indexdb => $indexdb, store => $store );
 }

@@ -1,3 +1,10 @@
+0.45    11 August 2003
+        Removed dependency on Class::Delegation.
+        Fixed Makefile.PL to check for Lingua::Stem before trying to test
+          DBIx::FullTextSearch stuff.
+        Fixed DBIx and Search::InvertedIndex tests to take note of database
+          host if one supplied.
+
 0.44    10 July 2003
         Fixed bug with metadata_isnt - it wasn't picking up nodes where
           that metadata type wasn't set.

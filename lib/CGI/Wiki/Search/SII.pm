@@ -6,7 +6,7 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.06;
+$VERSION = 0.07;
 
 =head1 NAME
 
@@ -237,12 +237,7 @@ make sure the node is removed from the backend store.  Croaks on error.
 sub delete_node {
     my ($self, $node) = @_;
     croak "Must supply a node name" unless $node;
-
-    my $update = Search::InvertedIndex::Update->new(
-        -group => "nodes",
-        -index => $node,
-    );
-    $self->{_map}->update( -update => $update );
+    $self->{_map}->remove_index_from_all({ -index => $node });
 }
 
 =item B<supports_phrase_searches>
