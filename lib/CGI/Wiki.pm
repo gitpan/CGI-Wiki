@@ -3,21 +3,19 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 use CGI ":standard";
 use Carp qw(croak carp);
 use Digest::MD5 "md5_hex";
 use Class::Delegation
     send => ['retrieve_node', 'retrieve_node_and_checksum', 'verify_checksum',
-             'list_all_nodes', 'list_recent_changes'],
+             'list_all_nodes', 'list_recent_changes', 'node_exists'],
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
     send => ['search_nodes', 'supports_phrase_searches'],
     to   => '_search',
-    send => 'format',
-    to   => '_formatter'
     ;
 
 =head1 NAME
@@ -216,6 +214,22 @@ sub write_node {
     return 1;
 }
 
+=item B<format>
+
+  my $cooked = $wiki->format($raw);
+
+Passed straight through to your chosen formatter object.
+
+=cut
+
+sub format {
+    my ( $self, $raw ) = @_;
+    my $formatter = $self->{_formatter};
+    # Add on $self to the call so the formatter can access things like whether
+    # a linked-to node exists, etc.
+    return $formatter->format( $raw, $self );
+}
+
 =item B<store>
 
   my $store  = $wiki->store;
@@ -258,6 +272,8 @@ backend, if any)
 =item * list_all_nodes
 
 =item * list_recent_changes
+
+=item * node_exists
 
 =item * retrieve_node
 
@@ -365,6 +381,19 @@ module depends on. Come claim beer or home-made cakes[0] at the next
 YAPC, people.
 
 [0] cakes require pre-booking
+
+=head1 CGI::WIKI IN ACTION!
+
+Max Maischein has set up a CGI::Wiki-based wiki describing various
+file formats, at L<http://www.corion.net/cgi-bin/wiki.cgi>
+
+I've set up a clone of grubstreet, a usemod wiki, at
+L<http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> -- it's not yet
+feature complete, and it uses a custom formatter module based on
+L<CGI::Wiki::Formatter::Default>, but other than the formatter (which
+will be released if/when my latest patches go into L<Text::WikiFormat>
+:) ) it's pure CGI::Wiki. Code is at
+L<http://the.earth.li/~kake/code/cgi-wiki-usemod-emulator/>
 
 =head1 GRATUITOUS PLUG
 

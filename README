@@ -123,6 +123,11 @@ METHODS
         All parameters are mandatory. Returns 1 on success, 0 on conflict,
         croaks on error.
 
+    format
+          my $cooked = $wiki->format($raw);
+
+        Passed straight through to your chosen formatter object.
+
     store
           my $store  = $wiki->store;
           my $dbname = eval { $wiki->store->dbname; }
@@ -142,6 +147,7 @@ METHODS
         backend, if any)
         * list_all_nodes
         * list_recent_changes
+        * node_exists
         * retrieve_node
         * retrieve_node_and_checksum (deprecated)
         * verify_checksum
@@ -208,6 +214,18 @@ CREDITS
     YAPC, people.
 
     [0] cakes require pre-booking
+
+CGI::WIKI IN ACTION!
+    Max Maischein has set up a CGI::Wiki-based wiki describing various file
+    formats, at <http://www.corion.net/cgi-bin/wiki.cgi>
+
+    I've set up a clone of grubstreet, a usemod wiki, at
+    <http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> -- it's not yet
+    feature complete, and it uses a custom formatter module based on
+    CGI::Wiki::Formatter::Default, but other than the formatter (which will
+    be released if/when my latest patches go into Text::WikiFormat :) ) it's
+    pure CGI::Wiki. Code is at
+    <http://the.earth.li/~kake/code/cgi-wiki-usemod-emulator/>
 
 GRATUITOUS PLUG
     I'm only obsessed with Wikis because of the Open-Source Guide to London

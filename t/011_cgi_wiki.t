@@ -1,6 +1,6 @@
 local $^W = 1;
 use strict;
-use Test::More tests => 320;
+use Test::More tests => 362;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -70,7 +70,7 @@ foreach my $configref (@tests) {
     SKIP: {
         skip "Store $store_class and search "
 	   . ( defined $search_class ? $search_class : "undef" )
-	   . " not configured for testing", 45 unless $testconfig{do};
+	   . " not configured for testing", 51 unless $testconfig{do};
 
         print "#####\n##### Test config: STORE: $store_class, SEARCH: "
 	   . ( defined $search_class ? $search_class : "undef" ) . "\n#####\n";
@@ -124,6 +124,12 @@ foreach my $configref (@tests) {
 				   search => $search );
         isa_ok( $wiki, "CGI::Wiki" );
         ok( $wiki->retrieve_node("Home"), "...and we can talk to the store" );
+
+        ##### Test whether we can see if a node exists.
+        ok( $wiki->node_exists("Home"),
+            "node_exists returns true for an existing node" );
+	ok( ! $wiki->node_exists("This Is A Nonexistent Node"),
+	    "...and false for a nonexistent one" );
 
         ##### Test retrieval of a node.
         is( $wiki->retrieve_node("Node1"), "This is Node1.",
@@ -304,6 +310,8 @@ foreach my $configref (@tests) {
         ##### re-use the same database (eg mysql-nosearch, mysql-dbixfts)
         # The tests in this file will write to the following nodes:
         #   Another Node, Everyone's Favourite Hobby, Node1
+
+        # Test by "in last n days".
         foreach my $node ("Node1", "Everyone's Favourite Hobby",
 			  "Another Node") { # note the order
             %node_data = $wiki->retrieve_node($node);
@@ -327,6 +335,17 @@ foreach my $configref (@tests) {
 		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
 		   "...in the right order" ); # returns in reverse chron. order
 
+        # Test by "last n nodes changed".
+        @nodes = $wiki->list_recent_changes( last_n_changes => 2 );
+        @nodenames = map { $_->{name} } @nodes;
+        print "# Found nodes: " . join(" ", @nodenames) . "\n";
+        is_deeply( \@nodenames,
+		   ["Another Node", "Everyone's Favourite Hobby"],
+                   "recent_changes 'last_n_changes' works" );
+        eval { $wiki->list_recent_changes( last_n_changes => "foo" ); };
+        ok( $@, "...and croaks on bad input" );
+
+        # Test by "since time T".
         my $time = time;
 	my $slept = sleep(2);
 	warn "Slept for less than a second, 'since' test may fail"
@@ -339,6 +358,35 @@ foreach my $configref (@tests) {
 		   "recent_changes 'since' returns the right results" );
         ok( $nodes[0]{last_modified},
 	    "...and a plausible (not undef or empty) last_modified timestamp");
+
+      SKIP: {
+        skip "TODO", 2;
+
+        # Test by "last n nodes added".
+        foreach my $node ("Temp Node 1", "Temp Node 2", "Temp Node 3") {
+            $wiki->write_node($node, "foo");
+            my $slept = sleep(2);
+            warn "Slept for less than a second, 'last n added' test may fail"
+              unless $slept >= 1;
+	}
+        @nodes = $wiki->list_recent_changes( last_n_added => 2 );
+	@nodenames = map { $_->{name} } @nodes;
+        is_deeply( \@nodenames, ["Temp Node 3", "Temp Node 2"],
+                   "last_n_added works" );
+        my $slept = sleep(2);
+            warn "Slept for less than a second, 'last n added' test may fail"
+              unless $slept >= 1;
+        %node_data = $wiki->retrieve_node("Temp Node 1");
+	$wiki->write_node("Temp Node1", @node_data{qw( content checksum )});
+        @nodes = $wiki->list_recent_changes( last_n_added => 2 );
+	@nodenames = map { $_->{name} } @nodes;
+        is_deeply( \@nodenames, ["Temp Node 3", "Temp Node 2"],
+                   "...still works when we've written to an older node" );
+
+        foreach my $node ("Temp Node 1", "Temp Node 2", "Temp Node 3") {
+            $wiki->delete_node($node) or die "Couldn't clean up";
+        }
+      }
 
     }
 }

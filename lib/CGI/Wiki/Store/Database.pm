@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw(croak);
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 =head1 NAME
 
@@ -79,11 +79,11 @@ sub _init {
   my $content = $store->retrieve_node($node);
 
   # Or get additional meta-data too.
-  my %node = $backend->retrieve_node("HomePage");
+  my %node = $store->retrieve_node("HomePage");
   print "Current Version: " . $node{version};
 
   # Or get an earlier version:
-  my %node = $backend->retrieve_node(name    => "HomePage",
+  my %node = $store->retrieve_node(name    => "HomePage",
 			             version => 2 );
   print $node{content};
 
@@ -121,15 +121,16 @@ sub retrieve_node {
 
 =item B<retrieve_node_and_checksum>
 
-  my ($content, $cksum) = $backend->retrieve_node_and_checksum($node);
+  my ($content, $cksum) = $store->retrieve_node_and_checksum($node);
 
 Works just like retrieve_node would in scalar context, but also gives you
 a checksum that you must send back when you want to commit changes, so
 you can check that no other changes have been committed while you were
 editing.
 
-This is a convenience method supplied for backwards compatibility with
-0.03, and will possibly disappear at some point.
+B<NOTE:> This is a convenience method supplied for backwards
+compatibility with 0.03, and will probably disappear at some point.
+Use C<retrieve_node> in list context, instead.
 
 =cut
 
@@ -137,6 +138,25 @@ sub retrieve_node_and_checksum {
     my ($self, $node) = @_;
     my %data = $self->retrieve_node($node) or return ();
     return @data{ qw( content checksum ) };
+}
+
+=item B<node_exists>
+
+  if ( $store->node_exists( "Wombat Defenestration" ) {
+      # do something about the weird people infesting your wiki
+  } else {
+      # ah, safe, no weirdos here
+  }
+
+Returns true if the node has ever been created (even if it is
+currently empty), and false otherwise.
+
+=cut
+
+sub node_exists {
+    my ( $self, $node ) = @_;
+    my %data = $self->retrieve_node($node) or return ();
+    return $data{version}; # will be 0 if node doesn't exist, >=1 otherwise
 }
 
 =item B<verify_checksum>
@@ -260,7 +280,7 @@ sub delete_node {
   my @nodes = $store->list_recent_changes( since => 1036235131 );
 
   # Most recent change and its details.
-  my @nodes = $store->list_recent_changes( days => 1 );
+  my @nodes = $store->list_recent_changes( last_n_changes => 1 );
   print "Node:          $nodes[0]{name}";
   print "Last modified: $nodes[0]{last_modified}";
   print "Comment:       $nodes[0]{comment}";
@@ -289,26 +309,39 @@ sub list_recent_changes {
     my $self = shift;
     my %args = @_;
     if ($args{since}) {
-        return $self->_list_changes_since($args{since});
-    } elsif ($args{days}) {
+        return $self->_find_recent_changes_by_criteria(since => $args{since});
+    } elsif ( $args{days} ) {
         my $now = localtime;
 	my $then = $now - ( ONE_DAY * $args{days} );
-        return $self->_list_changes_since($then);
+        return $self->_find_recent_changes_by_criteria(since => $then );
+    } elsif ( $args{last_n_changes} ) {
+        return $self->_find_recent_changes_by_criteria(
+            limit => $args{last_n_changes}
+        );
     } else {
 	croak "Need to supply a parameter";
     }
 }
 
-sub _list_changes_since {
-    my $self = shift;
-    my $since = shift;
-    my $timestamp = $self->_get_timestamp($since);
+sub _find_recent_changes_by_criteria {
+    my ($self, %args) = @_;
+    my ( $since, $limit ) = @args{ qw( since limit ) };
     my $dbh = $self->dbh;
+
+    my @where = ( "node.name=content.name", "node.version=content.version" );
+    if ( $since ) {
+        my $timestamp = $self->_get_timestamp( $since );
+        push @where, "node.modified >= " . $dbh->quote($timestamp);
+    }
+
     my $sql = "SELECT node.name, node.modified, content.comment
-               FROM node, content WHERE node.modified >= "
-            . $dbh->quote($timestamp)
-            . " AND node.name=content.name AND node.version=content.version "
-	    . " ORDER BY node.modified DESC";
+               FROM node, content WHERE " . join(" AND ", @where)
+            . " ORDER BY node.modified DESC";
+    if ( $limit ) {
+        croak "Bad argument $limit" unless $limit =~ /^\d+$/;
+        $sql .= " LIMIT $limit";
+    }
+
     my $nodesref = $dbh->selectall_arrayref($sql);
     return map { { name          => $_->[0],
 		   last_modified => $_->[1],

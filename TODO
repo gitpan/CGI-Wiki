@@ -1,13 +1,14 @@
 
-- Stemming for the Search::InvertedIndex backends.
+- Stemming and phrase searches for the Search::InvertedIndex backends.
+
+- Allow storage of visitor-defined metadata for pages (categories, random
+  quotes for plugins a la grubstreet front page, etc).
+
+- Make the macro feature more powerful.  blair christensen pointed me
+  at PhpWiki's "plugin" functionality, which looks very cool.
 
 - The instructions in INSTALL are pretty complicated.  An easier procedure
   or better docs would be good.
-
-- The formatting string for the modification time is now visible as
-  $CGI::Wiki::Store::Database::timestamp_fmt -- I did this to make testing
-  easier, should now think about the implications of it and consider
-  documenting it.
 
 - Consolidate the user-setup-* scripts into a single one for all database
   backends, with an extra option for the type of store to set up.
@@ -15,11 +16,18 @@
 - Consolidate the test data into a single file, call $dbh->quote on it
   within the setup tests.
 
-- Make a usemod flatfile backend, or write a script to convert to and
-  from that format.
-
 - Look at case-sensitivity in node names.
 
-- Make the macro feature more powerful.  blair christensen pointed me
-  at PhpWiki's "plugin" functionality, which looks very cool.
+- The formatting string for the modification time is now visible as
+  $CGI::Wiki::Store::Database::timestamp_fmt -- I did this to make testing
+  easier, should now think about the implications of it and consider
+  documenting it.
 
+- Make a usemod flatfile backend, or write a script to convert to and
+  from that format.
+  This is now low priority, can use Ivor's wikihoover script to copy
+  a usemod-based wiki over to a CGI::Wiki based one.  See
+    http://hummous.earth.li/pipermail/grubstreet/2003-January/000199.html
+  for the script, and
+    http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi
+  for an (incomplete at time of writing) usemod emulation.
