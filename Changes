@@ -1,3 +1,9 @@
+0.13    2 January 2003
+        Minor fix - t/031_formatting.t was being reported as failing on
+          systems without support for any of the backends, since I forgot to
+          update the SKIP condition when I added six extra tests.  Thanks
+          to root@ostend.org for the report via cpan-testers.
+
 0.12    1 January 2003
         The Search::InvertedIndex backend wasn't indexing the node titles -
           fixed and added tests.

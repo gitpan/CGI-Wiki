@@ -1,4 +1,6 @@
 
+- Stemming for the Search::InvertedIndex backends.
+
 - The instructions in INSTALL are pretty complicated.  An easier procedure
   or better docs would be good.
 
@@ -13,9 +15,6 @@
 - Consolidate the test data into a single file, call $dbh->quote on it
   within the setup tests.
 
-- Implement a search for the postgres and SQLite storage backends
-  (Search::InverseIndex?)
-
 - Make a usemod flatfile backend, or write a script to convert to and
   from that format.
 
@@ -23,3 +22,4 @@
 
 - Make the macro feature more powerful.  blair christensen pointed me
   at PhpWiki's "plugin" functionality, which looks very cool.
+

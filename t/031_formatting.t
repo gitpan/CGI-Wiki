@@ -19,7 +19,7 @@ if ($CGI::Wiki::TestConfig::config{MySQL}->{dbname}) {
 }
 
 SKIP: {
-    skip "No storage backends configured for testing", 2 if $skip;
+    skip "No storage backends configured for testing", 8 if $skip;
 
     # Set up a store to test with.
     my $store_class = $config{store_class};
