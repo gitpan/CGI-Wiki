@@ -39,7 +39,7 @@ if ($CGI::Wiki::TestConfig::configured
         my $dbname = $ENV{"CGI_WIKI_".uc($store)."_DBNAME"};
 	if ($dbname and $dbname ne "undef") {
 	    $config{$store}{dbname} = $dbname;
-            foreach my $var (qw(dbuser dbpass)) {
+            foreach my $var (qw(dbuser dbpass dbhost)) {
                 my $value = $ENV{"CGI_WIKI_".uc($store)."_".uc($var)};
 		if ($value and $value ne "undef") {
   	            $config{$store}{$var} = $value;
@@ -74,21 +74,27 @@ if ($CGI::Wiki::TestConfig::configured
 	}
 
         # Prompt for the options.
-        my ($dbname, $dbuser, $dbpass);
-        $dbname = prompt "\nDatabase name for $store_type: ",
+        my ($dbname, $dbuser, $dbpass, $dbhost);
+        my $pad = ' ' x (7-length $store_type);
+        $dbname = prompt "\n${pad}Database name for $store_type: ",
 	                 $config{$store_type}{dbname};
         undef $dbname unless ($dbname and $dbname ne "undef");
         if ($dbname and $dbname ne "undef") {
-	    $dbuser = prompt "          Database user: ",
+	    $dbuser = prompt "            Database user: ",
 	                     $config{$store_type}{dbuser};
             undef $dbuser unless ($dbuser and $dbuser ne "undef");
-	    $dbpass = prompt "      Database password: ",
+	    $dbpass = prompt "        Database password: ",
 	                     $config{$store_type}{dbpass};
             undef $dbpass unless ($dbpass and $dbpass ne "undef");
+	    $dbhost = prompt "Database host (if needed): ",
+	                     $config{$store_type}{dbhost};
+            undef $dbhost unless ($dbhost and $dbhost ne "undef");
 
             # Check that these connection parameters actually work.
-            my $dbh = eval { DBI->connect($dsn_prefix{$store_type}.$dbname,
- 				          $dbuser, $dbpass, {PrintError => 0})
+            my $dsn = $dsn_prefix{$store_type}.$dbname;
+            $dsn .= ";host=$dbhost" if $dbhost;
+            my $dbh = eval { DBI->connect($dsn,
+ 				          $dbuser, $dbpass, {PrintError => 1})
 			         or die DBI->errstr;
 			   };
             die "\nCan't connect to $store_type with those parameters:"
@@ -101,6 +107,7 @@ if ($CGI::Wiki::TestConfig::configured
             $config{$store_type}{dbname} = $dbname;
             $config{$store_type}{dbuser} = $dbuser;
             $config{$store_type}{dbpass} = $dbpass;
+            $config{$store_type}{dbhost} = $dbhost;
 	} else {
             print "\nNo database name supplied... skipping...\n";
 	    $config{$store_type}{dbname} = undef;

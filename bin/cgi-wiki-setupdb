@@ -2,11 +2,12 @@
 use strict;
 use Getopt::Long;
 
-my ($dbtype, $dbname, $dbuser, $dbpass, $help, $preclear);
+my ($dbtype, $dbname, $dbuser, $dbpass, $dbhost, $help, $preclear);
 GetOptions( "type=s"         => \$dbtype,
 	    "name=s"         => \$dbname,
             "user=s"         => \$dbuser,
             "pass=s"         => \$dbpass,
+            "host=s"         => \$dbhost,
             "help"           => \$help,
             "force-preclear" => \$preclear
            );
@@ -48,12 +49,12 @@ if ( $@ ) {
 
 if ($preclear) {
     no strict 'refs';
-    &{$class."::cleardb"}($dbname, $dbuser, $dbpass);
+    &{$class."::cleardb"}($dbname, $dbuser, $dbpass, $dbhost);
 }
 
 {
     no strict 'refs';
-    &{$class."::setup"}($dbname, $dbuser, $dbpass);
+    &{$class."::setup"}($dbname, $dbuser, $dbpass, $dbhost);
 }
 
 =head1 NAME
@@ -69,7 +70,8 @@ cgi-wiki-setupdb - Set up a database storage backend for CGI::Wiki.
   cgi-wiki-setupdb --type postgres
 		   --name mywiki \
 		   --user wiki  \
-		   --pass wiki
+		   --pass wiki \
+                   --host 'db.example.com'
 
   # Clear out any existing data and set up a fresh backend from scratch.
 
@@ -81,7 +83,7 @@ cgi-wiki-setupdb - Set up a database storage backend for CGI::Wiki.
 
 =head1 DESCRIPTION
 
-Takes four mandatory arguments:
+Takes three mandatory arguments:
 
 =over 4
 
@@ -98,9 +100,20 @@ The database name.
 The user that connects to the database. It must have permission
 to create and drop tables in the database.
 
+=back
+
+two optional arguments:
+
+=over 4
+
 =item pass
 
 The user's database password.
+
+=item host
+
+The hostname of the machine the database server is running on (omit
+for local databases).
 
 =back
 

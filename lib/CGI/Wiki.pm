@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.29';
+$VERSION = '0.30';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -420,6 +420,8 @@ Other ways to implement Wikis in Perl include:
 
 =item * L<CGI::Wiki::Simple> (based on L<CGI::Wiki>)
 
+=item * L<CGI::Kwiki> (an instant wiki)
+
 =item * L<CGI::pWiki>
 
 =item * L<AxKit::XSP::Wiki>
@@ -459,8 +461,10 @@ far too many to name individually, but particularly Richard Clamp,
 Tony Fisher, Mark Fowler, and Chris Ball.
 
 blair christensen sent patches and gave me some good ideas. chromatic
-continues to patiently apply my patches to L<Text::WikiFormat>. The
-grubstreet team keep me well-supplied with encouragement and bug reports.
+continues to patiently apply my patches to L<Text::WikiFormat>. Paul
+Makepeace helped me add support for connecting to non-local databases.
+The grubstreet team keep me well-supplied with encouragement and bug
+reports.
 
 =head1 CGI::WIKI IN ACTION!
 

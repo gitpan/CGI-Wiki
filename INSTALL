@@ -32,9 +32,11 @@ HOW TO INSTALL THIS:
     CGI_WIKI_MYSQL_DBNAME   # If 'undef', following two variables are ignored
     CGI_WIKI_MYSQL_DBUSER
     CGI_WIKI_MYSQL_DBPASS
+    CGI_WIKI_MYSQL_DBHOST   # Leave blank if database is local
     CGI_WIKI_PG_DBNAME      # If 'undef', following two variables are ignored
     CGI_WIKI_PG_DBUSER
     CGI_WIKI_PG_DBPASS
+    CGI_WIKI_PG_DBHOST      # Leave blank if database is local
     CGI_WIKI_DBIXFTS_MYSQL  # NOTE: Any non-blank value other than 'undef'
                             # or '0' signifies 'test this'
 

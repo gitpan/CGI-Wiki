@@ -8,7 +8,7 @@ use CGI::Wiki::Store::Database;
 use Carp qw/carp croak/;
 
 @ISA = qw( CGI::Wiki::Store::Database );
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 =head1 NAME
 
@@ -26,8 +26,10 @@ See CGI::Wiki::Store::Database
 
 # Internal method to return the data source string required by DBI.
 sub _dsn {
-    my ($self, $dbname) = @_;
-    return "dbi:Pg:dbname=$dbname";
+    my ($self, $dbname, $dbhost) = @_;
+    my $dsn = "dbi:Pg:dbname=$dbname";
+    $dsn .= ";host=$dbhost" if $dbhost;
+    return $dsn;
 }
 
 =head1 METHODS

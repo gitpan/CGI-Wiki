@@ -6,11 +6,14 @@ my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
 my $testing = $config{dbname};
 
 if ($testing) {
-    my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+    my ($dbname, $dbuser, $dbpass, $dbhost) =
+                                     @config{qw(dbname dbuser dbpass dbhost)};
+    my $dsn = "dbi:mysql:$dbname";
+    $dsn .= ";host=$dbhost" if defined $dbhost;
 
     # Put in the test data.
-    my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,
-                       { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
+    my $dbh = DBI->connect($dsn, $dbuser, $dbpass,
+                        { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
         or die "Couldn't connect to database: " . DBI->errstr;
     while (my $sql = <DATA>) {
         $dbh->do($sql) or die $dbh->errstr;

@@ -22,11 +22,12 @@ eval { $class->new; };
 ok( $@, "Failed creation dies" );
 
 my %config = %{$CGI::Wiki::TestConfig::config{Pg}};
-my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+my ($dbname, $dbuser, $dbpass, $dbhost) = @config{qw(dbname dbuser dbpass dbhost)};
 
 my $store = eval { $class->new( dbname => $dbname,
                                 dbuser => $dbuser,
-                                dbpass => $dbpass );
+                                dbpass => $dbpass,
+				dbhost => $dbhost );
                  };
 is( $@, "", "Creation succeeds" );
 isa_ok( $store, $class );
@@ -45,7 +46,8 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
         my $node = $_[1];
 	my $evil_store = $class->new( dbname => $dbname,
 				      dbuser => $dbuser,
-				      dbpass => $dbpass );
+				      dbpass => $dbpass,
+				      dbhost => $dbhost );
         my $evil_wiki = CGI::Wiki->new( store => $evil_store );
         my %node_data = $evil_wiki->retrieve_node($node);
         $evil_wiki->write_node($node, "foo", $node_data{checksum})

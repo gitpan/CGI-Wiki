@@ -1,3 +1,7 @@
+0.30    22 April 2003
+        Added support for supplying 'host' parameter when connecting to
+          MySQL/Postgres databases (requested and assisted by Paul Makepeace).
+
 0.29    20 April 2003
         Got rid of the separate bin/user-setup-* scripts, added
           bin/cgi-wiki-setupdb and made it be installed when the rest of

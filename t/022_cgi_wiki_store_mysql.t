@@ -14,14 +14,16 @@ eval { $class->new; };
 ok( $@, "Failed creation dies" );
 
 my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
-my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+my ($dbname, $dbuser, $dbpass, $dbhost) =
+                                      @config{qw(dbname dbuser dbpass dbhost)};
 
 SKIP: {
     skip "No MySQL database configured for testing", 8 unless $dbname;
 
     my $store = eval { $class->new( dbname => $dbname,
 				    dbuser => $dbuser,
-				    dbpass => $dbpass );
+				    dbpass => $dbpass,
+				    dbhost => $dbhost );
 		     };
     is( $@, "", "Creation succeeds" );
     isa_ok( $store, $class );
@@ -30,7 +32,8 @@ SKIP: {
     # White box test - do internal locking functions work the way we expect?
     my $evil_store = $class->new( dbname => $dbname,
 				  dbuser => $dbuser,
-				  dbpass => $dbpass );
+				  dbpass => $dbpass,
+				  dbhost => $dbhost  );
 
     ok( $store->_lock_node("Home"), "Can lock a node" );
     ok( ! $evil_store->_lock_node("Home"),

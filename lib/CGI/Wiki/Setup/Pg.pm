@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::Pg;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use DBI;
 use Carp;
@@ -59,7 +59,9 @@ CGI::Wiki::Setup::Pg - Set up tables for a CGI::Wiki store in a Postgres databas
 =head1 SYNOPSIS
 
   use CGI::Wiki::Setup::Pg;
-  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass);
+  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass, $dbhost);
+
+Omit $dbhost if the database is local.
 
 =head1 DESCRIPTION
 
@@ -72,11 +74,13 @@ Set up a Postgres database for use as a CGI::Wiki store.
 =item B<setup>
 
   use CGI::Wiki::Setup::Pg;
-  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass);
+  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass, $dbhost);
 
-Takes three arguments -- the database name, the username and the
+Takes three mandatory arguments -- the database name, the username and the
 password. The username must be able to create and drop tables in the
 database.
+
+The $dbhost argument is optional -- omit it if the database is local.
 
 B<NOTE:> If a table that the module wants to create already exists,
 C<setup> will leave it alone. This means that you can safely run this
@@ -87,9 +91,11 @@ again with a fresh database, run C<cleardb> first.
 =cut
 
 sub setup {
-    my ($dbname, $dbuser, $dbpass) = (@_);
+    my ($dbname, $dbuser, $dbpass, $dbhost) = (@_);
 
-    my $dbh = DBI->connect("dbi:Pg:dbname=$dbname", $dbuser, $dbpass,
+    my $dsn = "dbi:Pg:dbname=$dbname";
+    $dsn .= ";host=$dbhost" if $dbhost;
+    my $dbh = DBI->connect($dsn, $dbuser, $dbpass,
                            { PrintError => 1, RaiseError => 1,
                              AutoCommit => 1 } )
       or croak DBI::errstr;
@@ -125,11 +131,13 @@ sub setup {
   use CGI::Wiki::Setup::Pg;
 
   # Clear out the old database completely, then set up tables afresh.
-  CGI::Wiki::Setup::Pg::cleardb($dbname, $dbuser, $dbpass);
-  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass);
+  CGI::Wiki::Setup::Pg::cleardb($dbname, $dbuser, $dbpass, $dbhost);
+  CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass, $dbhost);
 
-Takes three arguments -- the database name, the username and the
+Takes three mandatory arguments -- the database name, the username and the
 password. The username must be able to drop tables in the database.
+
+The $dbhost argument is optional -- omit it if the database is local.
 
 Clears out all L<CGI::Wiki> store tables from the database. B<NOTE>
 that this will lose all your data; you probably only want to use this
@@ -142,9 +150,11 @@ which search backend you're using.
 =cut
 
 sub cleardb {
-    my ($dbname, $dbuser, $dbpass) = (@_);
+    my ($dbname, $dbuser, $dbpass, $dbhost) = (@_);
 
-    my $dbh = DBI->connect("dbi:Pg:dbname=$dbname", $dbuser, $dbpass,
+    my $dsn = "dbi:Pg:dbname=$dbname";
+    $dsn .= ";host=$dbhost" if $dbhost;
+    my $dbh = DBI->connect($dsn, $dbuser, $dbpass,
 			   { PrintError => 1, RaiseError => 1,
 			     AutoCommit => 1 } )
       or croak DBI::errstr;
@@ -170,7 +180,7 @@ Kake Pugh (kake@earth.li).
 
 =head1 COPYRIGHT
 
-     Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+     Copyright (C) 2002-2003 Kake Pugh.  All Rights Reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

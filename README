@@ -20,6 +20,10 @@ will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
 
+0.30    22 April 2003
+        Added support for supplying 'host' parameter when connecting to
+          MySQL/Postgres databases (requested and assisted by Paul Makepeace).
+
 0.27    5 April 2003
         Added ->reinitialise_stores method to CGI::Wiki::TestConfig::Utilities
           to make it easier for plugins and so forth to make sure they have
@@ -32,16 +36,8 @@ SIGNIFICANT RECENT CHANGES
         list_recent_changes now returns any metadata attached to the node
           as well - 'perldoc CGI::Wiki::Store::Database' for details.
 
-0.22    8 March 2003
-        Rejig of the way the tests work, in preparation for allowing
-          third-party plugins.  'perldoc CGI::Wiki::TestConfig::Utilities'
-          for details.
-
-0.20    22 February 2003
-        Added simple metadata support.  Another database schema change;
-          see 'Changes' file.
-
 SYNOPSIS
+
       # Set up a wiki object with an SQLite storage backend, and an
       # inverted index/DB_File search backend.  This store/search
       # combination can be used on systems with no access to an actual

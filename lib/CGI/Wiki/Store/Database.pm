@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 =head1 NAME
 
@@ -33,9 +33,10 @@ Can't see yet why you'd want to use the backends directly, but:
 
   my $store = CGI::Wiki::Store::MySQL->new( dbname => "wiki",
 					    dbuser => "wiki",
-					    dbpass => "wiki" );
+					    dbpass => "wiki",
+                                            dbhost => "db.example.com" );
 
-C<dbname> is mandatory. C<dbpass> and C<dbuser> are optional, but
+C<dbname> is mandatory. C<dbpass>, C<dbuser> and C<dbhost> are optional, but
 you'll want to supply them unless your database's authentication
 method doesn't require it.
 
@@ -58,15 +59,17 @@ sub _init {
     }
     $self->{_dbuser} = $args{dbuser} || "";
     $self->{_dbpass} = $args{dbpass} || "";
+    $self->{_dbhost} = $args{dbhost} || "";
 
     # Connect to database and store the database handle.
-    my ($dbname, $dbuser, $dbpass) = @$self{qw(_dbname _dbuser _dbpass)};
-    my $dsn = $self->_dsn($dbname)
+    my ($dbname, $dbuser, $dbpass, $dbhost) =
+                               @$self{qw(_dbname _dbuser _dbpass _dbhost)};
+    my $dsn = $self->_dsn($dbname, $dbhost)
        or croak "No data source string provided by class";
     $self->{_dbh} = DBI->connect($dsn, $dbuser, $dbpass,
 				 { PrintError => 0, RaiseError => 1,
 				   AutoCommit => 1 } )
-        or croak "Can't connect to database $dbname: " . DBI->errstr;
+       or croak "Can't connect to database $dbname using $dsn: " . DBI->errstr;
 
     return $self;
 }
@@ -662,6 +665,20 @@ Returns the password used to connect to the database used for backend storage.
 sub dbpass {
     my $self = shift;
     return $self->{_dbpass};
+}
+
+=item B<dbhost>
+
+  my $dbhost = $store->dbhost;
+
+Returns the optional host used to connect to the database used for
+backend storage.
+
+=cut
+
+sub dbhost {
+    my $self = shift;
+    return $self->{_dbhost};
 }
 
 # Cleanup.

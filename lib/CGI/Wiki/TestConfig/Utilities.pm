@@ -5,7 +5,7 @@ use strict;
 use CGI::Wiki::TestConfig;
 
 use vars qw( $num_stores $num_combinations $VERSION );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 =head1 NAME
 
@@ -85,7 +85,8 @@ foreach my $dbtype (qw( MySQL Pg SQLite )) {
 	eval "require $store_class";
 	my $store = $store_class->new( dbname => $config{dbname},
 				       dbuser => $config{dbuser},
-				       dbpass => $config{dbpass} );
+				       dbpass => $config{dbpass},
+				       dbhost => $config{dbhost} );
 	$stores{$dbtype} = $store;
     } else {
 	$stores{$dbtype} = undef;
@@ -114,7 +115,7 @@ if ( $CGI::Wiki::TestConfig::config{search_invertedindex} && $stores{MySQL} ) {
                        -db_name    => $dbconfig{dbname},
                        -username   => $dbconfig{dbuser},
                        -password   => $dbconfig{dbpass},
-	   	       -hostname   => '',
+	   	       -hostname   => $dbconfig{dbhost} || "",
                        -table_name => 'siindex',
                        -lock_mode  => 'EX' );
     $searches{SIIMySQL} = CGI::Wiki::Search::SII->new( indexdb => $indexdb );
@@ -191,14 +192,15 @@ sub reinitialise_stores {
         my $dbname = $store->dbname;
         my $dbuser = $store->dbuser;
         my $dbpass = $store->dbpass;
+        my $dbhost = $store->dbhost;
 
         # Clear out the test database, then set up tables afresh.
         my $setup_class = "CGI::Wiki::Setup::$store_name";
         eval "require $setup_class";
         {
           no strict "refs";
-          &{"$setup_class\:\:cleardb"}($dbname, $dbuser, $dbpass);
-          &{"$setup_class\:\:setup"}($dbname, $dbuser, $dbpass);
+          &{"$setup_class\:\:cleardb"}($dbname, $dbuser, $dbpass, $dbhost);
+          &{"$setup_class\:\:setup"}($dbname, $dbuser, $dbpass, $dbhost);
         }
     }
 }

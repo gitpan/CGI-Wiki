@@ -23,10 +23,12 @@ SKIP: {
 	    eval { $class->new; };
 	    ok( $@, "Failed creation dies" );
 
-	    my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+	    my ($dbname, $dbuser, $dbpass, $dbhost) =
+                                      @config{qw(dbname dbuser dbpass dbhost)};
 	    my $store = eval { $class->new( dbname => $dbname,
 					    dbuser => $dbuser,
-					    dbpass => $dbpass );
+					    dbpass => $dbpass,
+					    dbhost => $dbhost );
 			     };
 	    is( $@, "", "Creation succeeds" );
 	    isa_ok( $store, $class );
