@@ -1,3 +1,7 @@
+0.25    29 March 2003
+        list_recent_changes can now filter on a single metadata criterion
+          - multiple criteria coming soon.
+
 0.24    29 March 2003
         list_recent_changes now returns any metadata attached to the node
           as well - so you can put comments and usernames and things in there

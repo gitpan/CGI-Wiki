@@ -15,6 +15,9 @@ will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
 
+0.25    29 March 2003
+        list_recent_changes can now filter on a single metadata criterion.
+
 0.24    29 March 2003
         list_recent_changes now returns any metadata attached to the node
           as well - 'perldoc CGI::Wiki::Store::Database' for details.
@@ -27,23 +30,6 @@ SIGNIFICANT RECENT CHANGES
 0.20    22 February 2003
         Added simple metadata support.  Another database schema change;
           see 'Changes' file.
-
-0.15    5 January 2003
-        Implemented backlinks.  Database schema change; see 'Changes' file.
-
-0.11    31 December 2002
-        Changes suggested by blair christensen, to allow alternate formatters.
-
-0.10    19 December 2002
-        Added a Search::InvertedIndex backend; now you can do searches without
-          the need for MySQL.
-
-0.04    17 November 2002
-        Added a DBD::SQLite storage backend (thanks to blair christensen
-          for a patch that makes up part of this).
-
-0.01    28 October 2002
-        Initial release.
 
 SYNOPSIS
       # Set up a wiki object with an SQLite storage backend, and an

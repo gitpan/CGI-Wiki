@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 =head1 NAME
 
@@ -438,6 +438,16 @@ sub delete_node {
   print "Last modified: $nodes[0]{last_modified}";
   print "Comment:       $nodes[0]{metadata}{comment}";
 
+  # Last 5 nodes edited by Kake.
+  my @nodes = $store->list_recent_changes(
+      last_n_changes => 5,
+      metadata_is    => { username => "Kake" }
+  );
+
+You must supply one of the following constraints: C<days> (integer),
+C<since> (epoch), C<last_n_changes> (integer). You may also supply a
+C<metadata_is> constraint, which should be a ref to a hash with a
+single key and value (see below for future plans).
 
 Returns results as an array, in reverse chronological order.  Each
 element of the array is a reference to a hash with the following entries:
@@ -463,21 +473,47 @@ method used to pretend to return a comment, which was always the blank
 string. It now returns the metadata hashref, so you can put your
 comments in that.
 
+B<Future plans and thoughts for list_recent_changes>
+
+This method will croak if you try to put more than one key/value in
+the metadata constraint hash, because the API for that is not yet
+decided. It'll be nice in the future to be able to do for example:
+
+  # All pub nodes edited by Earle in the last week.
+  my @nodes = $store->list_recent_changes(
+      days           => 7,
+      metadata_is    => { username => "Earle",
+                          category => "Pubs" }
+  );
+
+  # The last three Holborn pubs whose entries were edited.
+  my @nodes = $store->list_recent_changes(
+      last_n_changes => 3,
+      metadata_is    => { category => [ "Pubs", "Holborn" ] }
+  );
+
+The question is a nice syntax for specifying how the criteria should
+be ANDed or ORed. This might make sense done as a plugin.
+
 =cut
 
 sub list_recent_changes {
     my $self = shift;
     my %args = @_;
     if ($args{since}) {
-        return $self->_find_recent_changes_by_criteria(since => $args{since});
+        return $self->_find_recent_changes_by_criteria(
+            since       => $args{since},
+	    metadata_is => $args{metadata_is} );
     } elsif ( $args{days} ) {
         my $now = localtime;
 	my $then = $now - ( ONE_DAY * $args{days} );
-        return $self->_find_recent_changes_by_criteria(since => $then );
+        return $self->_find_recent_changes_by_criteria(
+            since       => $then,
+	    metadata_is => $args{metadata_is} );
     } elsif ( $args{last_n_changes} ) {
         return $self->_find_recent_changes_by_criteria(
-            limit => $args{last_n_changes}
-        );
+            limit       => $args{last_n_changes},
+	    metadata_is => $args{metadata_is} );
     } else {
 	croak "Need to supply a parameter";
     }
@@ -485,7 +521,7 @@ sub list_recent_changes {
 
 sub _find_recent_changes_by_criteria {
     my ($self, %args) = @_;
-    my ( $since, $limit ) = @args{ qw( since limit ) };
+    my ($since, $limit, $metadata_is) = @args{ qw( since limit metadata_is) };
     my $dbh = $self->dbh;
 
     my @where;
@@ -494,8 +530,22 @@ sub _find_recent_changes_by_criteria {
         push @where, "node.modified >= " . $dbh->quote($timestamp);
     }
 
-    my $sql = "SELECT node.name, node.version, node.modified
-               FROM node " . ( scalar @where ? " WHERE " . join(" AND ",@where)
+    if ( $metadata_is ) {
+        if ( scalar keys %$metadata_is > 1 ) {
+            croak "metadata_is criterion must have one key and one value only";
+	}
+        my ($type) = keys %$metadata_is;
+	my $value  = $metadata_is->{$type};
+        croak "metadata_is criterion must have one key and one value only"
+          if ref $value;
+	push @where, "metadata.metadata_type=" . $dbh->quote($type);
+	push @where, "metadata.metadata_value=" . $dbh->quote($value);
+    }
+
+    my $sql = "SELECT DISTINCT node.name, node.version, node.modified
+               FROM node LEFT JOIN metadata ON node.name=metadata.node
+                                           AND node.version=metadata.version"
+            . ( scalar @where ? " WHERE " . join(" AND ",@where)
 			                     : "" )
             . " ORDER BY node.modified DESC";
     if ( $limit ) {
