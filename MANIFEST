@@ -4,10 +4,8 @@ MANIFEST
 Makefile.PL
 README
 TODO
+bin/cgi-wiki-setupdb
 bin/user-setup-mysql-dbixfts.pl
-bin/user-setup-mysql.pl
-bin/user-setup-postgres.pl
-bin/user-setup-sqlite.pl
 examples/styles.css
 examples/templates/edit_conflict.tt
 examples/templates/edit_form.tt

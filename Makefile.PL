@@ -192,6 +192,7 @@ WriteMakefile( NAME         => "CGI::Wiki",
 			         'Class::Delegation' => 0,
 			         'Time::Piece' => 0,
 			         %extras },
+               EXE_FILES => [ "bin/cgi-wiki-setupdb" ],
 	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm "
 			         . "t/sqlite-test.db t/sii-db-file-test.db" }
 	     );

@@ -1,3 +1,8 @@
+0.29    20 April 2003
+        Got rid of the separate bin/user-setup-* scripts, added
+          bin/cgi-wiki-setupdb and made it be installed when the rest of
+          the distribution is.
+
 0.28    6 April 2003
         Added ->formatter accessor to Wiki.pm
 
