@@ -1,7 +1,7 @@
 use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (22*$CGI::Wiki::TestConfig::Utilities::num_combinations);
+use Test::More tests => (25*$CGI::Wiki::TestConfig::Utilities::num_combinations);
 
 # Test for each configured pair: $store, $search.
 my @tests = CGI::Wiki::TestConfig::Utilities->combinations;
@@ -11,7 +11,7 @@ foreach my $configref (@tests) {
         @testconfig{qw(store_name store search_name search configured)};
     SKIP: {
         skip "Store $store_name and search $search_name"
-	   . " not configured for testing", 22 unless $configured;
+	   . " not configured for testing", 25 unless $configured;
 
         print "#####\n##### Test config: STORE: $store_name, SEARCH: "
 	   . $search_name . "\n#####\n";
@@ -20,23 +20,56 @@ foreach my $configref (@tests) {
 				   search         => $search,
 				   extended_links => 1 );
 
-	##### Test recent_changes.
+
+	##### Test recent_changes.  We'll write these nodes, in this order,
+        ##### with this metadata, sleeping for at least a second in between
+        ##### writes, and then run the tests.
+        #####
+        #####   Node1 (Kake, minor tidying)
+        #####   Everyone's Favourite Hobby (nou)
+        #####   Another Node
+
+        ##### Delete the nodes first so leftover history doesn't persist
+        ##### and muck up the metadata_was/wasnt tests.
+
+        foreach my $del_node ( $wiki->list_all_nodes ) {
+            $wiki->delete_node( $del_node ) or die "Can't delete $del_node";
+        }
+
+        my $start_time = time;
+        do_sleep();
+        my $node = "Node1";
+        my %node_data = $wiki->retrieve_node( $node );
+        $wiki->write_node( $node, @node_data{ qw( content checksum ) },
+                           {
+                             username  => "Kake",
+                             edit_type => "Minor tidying",
+                             comment   => "Test",
+                           }
+                         );
+        do_sleep();
+        $node = "Everyone's Favourite Hobby";
+        %node_data = $wiki->retrieve_node( $node );
+        $wiki->write_node( $node, @node_data{ qw( content checksum ) },
+                           {
+                             comment   => "Test",
+                           }
+                         );
+        do_sleep();
+        $node = "Another Node";
+        %node_data = $wiki->retrieve_node( $node );
+        $wiki->write_node( $node, @node_data{ qw( content checksum ) },
+                           {
+                             username  => "nou",
+                             comment   => "Test",
+                           }
+                         );
+
+        #####
+        ##### Ready to run the tests now.
+        #####
 
         # Test by "in last n days".
-	my $slept = sleep(2);
-	warn "Slept for less than a second, 'in last n days' test may fail"
-	  unless $slept >= 1;
-        foreach my $node ("Node1", "Everyone's Favourite Hobby",
-			  "Another Node") { # note the order
-            my %node_data = $wiki->retrieve_node($node);
-            $wiki->write_node($node, @node_data{ qw(content checksum) },
-			      { comment => "Test" }
-			     );
-            my $slept = sleep(2);
-            warn "Slept for less than a second, 'right order' test may fail"
-              unless $slept >= 1;
-	}
-
         my @nodes = $wiki->list_recent_changes( days => 1 );
         my @nodenames = map { $_->{name} } @nodes;
         my %unique = map { $_ => 1 } @nodenames;
@@ -69,33 +102,13 @@ foreach my $configref (@tests) {
         ok( $@, "...and croaks on bad input" );
 
         # Test by "since time T".
-        my $time = time;
-	$slept = sleep(2);
-	warn "Slept for less than a second, 'since' test may fail"
-	  unless $slept >= 1;
-        my %node_data = $wiki->retrieve_node("Node1");
-	$wiki->write_node("Node1", @node_data{qw( content checksum )});
-        @nodes = $wiki->list_recent_changes( since => $time );
-	@nodenames = map { $_->{name} } @nodes;
-        is_deeply( \@nodenames, ["Node1"],
+        @nodes = $wiki->list_recent_changes( since => $start_time );
+	@nodenames = sort map { $_->{name} } @nodes;
+        is_deeply( \@nodenames,
+		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
 		   "recent_changes 'since' returns the right results" );
         ok( $nodes[0]{last_modified},
 	    "...and a plausible (not undef or empty) last_modified timestamp");
-
-        # Test selecting by metadata.
-	$slept = sleep(2);
-	warn "Slept for less than a second, 'recent by metadata' test may fail"
-	  unless $slept >= 1;
-        %node_data = $wiki->retrieve_node("Node1");
-	$wiki->write_node("Node1", @node_data{qw( content checksum )},
-			  { username  => "Kake",
-                            edit_type => "Minor tidying" } )
-          or die "Couldn't write node";
-
-        %node_data = $wiki->retrieve_node("Another Node");
-	$wiki->write_node("Another Node", @node_data{qw( content checksum )},
-			  { username => "nou" } )
-          or die "Couldn't write node";
 
         # Test metadata_is. (We only actually expect a single result.)
         @nodes = $wiki->list_recent_changes(
@@ -130,6 +143,42 @@ foreach my $configref (@tests) {
         is( $@, "",
   "list_recent_changes doesn't die when metadata_isnt doesn't omit anything" );
 
+        #####
+        ##### Write another bunch of stuff for testing metadata_was
+        #####
+
+        do_sleep();
+        $node = "Another Node";
+        %node_data = $wiki->retrieve_node( $node );
+        $wiki->write_node( $node, @node_data{ qw( content checksum ) },
+                           {
+                             username  => "Kake",
+                             comment  => "Kake writes the node that nou wrote",
+                             edit_type => "Minor tidying",
+                           }
+                         );
+        @nodes = $wiki->list_recent_changes(
+            last_n_changes => 5,
+	    metadata_was => { username => "nou" }
+        );
+        is( scalar @nodes, 1,
+           "metadata_was returns nodes whose current version doesn't match" );
+        is( $nodes[0]{name}, "Another Node", "...correctly" );
+
+        ##### Testing metadata_wasnt - Everyone's Favourite Hobby and
+        ##### Another Node were both written as *not* minor edits, but
+        ##### then a minor edit was made on Another Node.  We expect
+        ##### metadata_wasnt to still return Another Node though.
+
+        @nodes = $wiki->list_recent_changes(
+            last_n_changes => 5,
+            metadata_wasnt => {
+                                edit_type => "Minor tidying",
+                              },
+        );
+        is( scalar @nodes, 2,
+            "metadata_wasnt returns nodes whose current version matches" );
+
       SKIP: {
         skip "TODO", 2;
 
@@ -161,3 +210,8 @@ foreach my $configref (@tests) {
     }
 }
 
+sub do_sleep {
+    my $slept = sleep(2);
+    warn "Slept for less than a second, test results may be unreliable"
+      unless $slept >= 1;
+}

@@ -35,6 +35,11 @@ ok( $store->dbh, "...and has set up a database handle" );
 
 my $wiki = CGI::Wiki->new( store => $store );
 
+# Check we are set up as we expect.
+my %node_data = $wiki->retrieve_node("Home");
+$wiki->write_node("Home", "This is the home node.", $node_data{checksum})
+    or die "Couldn't setup";
+
 # White box testing - override verify_node_checksum to first verify the
 # checksum and then if it's OK set up a new wiki object that sneakily
 # writes to the node before letting us have control back.
@@ -55,7 +60,7 @@ $temp = wrap CGI::Wiki::Store::Database::verify_checksum,
     };
 
 # Now try to write to a node -- it should fail.
-my %node_data = $wiki->retrieve_node("Home");
+%node_data = $wiki->retrieve_node("Home");
 ok( ! $wiki->write_node("Home", "bar", $node_data{checksum}),
     "write_node handles overlapping write attempts correctly" );
 

@@ -1,3 +1,6 @@
+0.47    29 August 2003
+        Added metadata_was and metadata_wasnt parameters to list_recent_changes
+
 0.46    14 August 2003
         Fix for Shevek.  ->write_node used to croak if it failed to index
           the backlinks, but since the MySQL varchar type is case-insensitive

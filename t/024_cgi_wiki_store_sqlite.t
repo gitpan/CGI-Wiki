@@ -29,7 +29,7 @@ is( $@, "", "Creation succeeds" );
 isa_ok( $store, $class );
 ok( $store->dbh, "...and has set up a database handle" );
 ok( $store->can( "retrieve_node" ), "...the object can 'retrieve_node'" );
-ok( $store->retrieve_node("Home"),
+ok( defined $store->retrieve_node("Home"),
     "...and we can call 'retrieve_node' with a parameter" );
 
 my $wiki = CGI::Wiki->new( store => $store );

@@ -33,7 +33,7 @@ SKIP: {
 	    is( $@, "", "Creation succeeds" );
 	    isa_ok( $store, $class );
 	    ok( $store->dbh, "...and has set up a database handle" );
-	    ok( $store->retrieve_node("Home"),
+	    ok( defined $store->retrieve_node("Node1"),
 		"...and we can retrieve a node" );
 	}
     }

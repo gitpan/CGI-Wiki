@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.46';
+$VERSION = '0.47';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -318,23 +318,35 @@ sub list_nodes_by_metadata {
   print "Last modified: $nodes[0]{last_modified}";
   print "Comment:       $nodes[0]{metadata}{comment}";
 
+  # Last 5 restaurant nodes edited.
+  my @nodes = $wiki->list_recent_changes(
+      last_n_changes => 5,
+      metadata_is    => { category => "Restaurants" }
+  );
+
   # Last 5 nodes edited by Kake.
   my @nodes = $wiki->list_recent_changes(
       last_n_changes => 5,
-      metadata_is    => { username => "Kake" }
+      metadata_was   => { username => "Kake" }
   );
 
-  # Last 10 nodes that aren't minor edits.
+  # Last 10 changes that weren't minor edits.
   my @nodes = $wiki->list_recent_changes(
       last_n_changes => 5,
-      metadata_isnt  => { edit_type => "Minor tidying" }
+      metadata_wasnt  => { edit_type => "Minor tidying" }
   );
 
-You must supply one of the following constraints: C<days> (integer),
-C<since> (epoch), C<last_n_changes> (integer). You may also supply one
-or both of a C<metadata_is> and a C<metadata_isnt> constraint. Each
-should be a ref to a hash with a single key and value (see below for
-future plans).
+You I<must> supply one of the following constraints: C<days>
+(integer), C<since> (epoch), C<last_n_changes> (integer). You I<may> also
+supply one of the following constraints: C<metadata_is>,
+C<metadata_isnt>, C<metadata_was>, C<metadata_wasnt>. Each should be a
+ref to a hash with a single key and value.
+
+C<metadata_is> and C<metadata_isnt> look only at the metadata that the
+node I<currently> has. C<metadata_was> and C<metadata_wasnt> also take
+into account the metadata of previous versions of a node. B<NOTE:> If
+you supply either or both of C<metadata_was> and C<metadata_wasnt>
+then any C<metadata_is> and C<metadata_isnt> will be ignored.
 
 Returns results as an array, in reverse chronological order.  Each
 element of the array is a reference to a hash with the following entries:
@@ -352,8 +364,9 @@ to the current version of the node
 
 =back
 
-Each node will only be returned once, regardless of how many times it
-has been changed recently.
+Unless you supply C<metadata_was> or C<metadata_wasnt>, each node will
+only be returned once, regardless of how many times it has been
+changed recently.
 
 =cut
 

@@ -11,7 +11,7 @@ use Time::Seconds;
 use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.18';
+$VERSION = '0.19';
 
 =head1 NAME
 
@@ -514,23 +514,36 @@ sub delete_node {
   print "Last modified: $nodes[0]{last_modified}";
   print "Comment:       $nodes[0]{metadata}{comment}";
 
+  # Last 5 restaurant nodes edited.
+  my @nodes = $store->list_recent_changes(
+      last_n_changes => 5,
+      metadata_is    => { category => "Restaurants" }
+  );
+
   # Last 5 nodes edited by Kake.
   my @nodes = $store->list_recent_changes(
       last_n_changes => 5,
-      metadata_is    => { username => "Kake" }
+      metadata_was   => { username => "Kake" }
   );
 
-  # Last 10 nodes that aren't minor edits.
+  # Last 10 changes that weren't minor edits.
   my @nodes = $store->list_recent_changes(
       last_n_changes => 5,
-      metadata_isnt  => { edit_type => "Minor tidying" }
+      metadata_wasnt  => { edit_type => "Minor tidying" }
   );
 
-You must supply one of the following constraints: C<days> (integer),
-C<since> (epoch), C<last_n_changes> (integer). You may also supply one
-or both of a C<metadata_is> and a C<metadata_isnt> constraint. Each
-should be a ref to a hash with a single key and value (see below for
-future plans).
+You I<must> supply one of the following constraints: C<days>
+(integer), C<since> (epoch), C<last_n_changes> (integer). You I<may>
+also supply one of the following constraints: C<metadata_is>,
+C<metadata_isnt>, C<metadata_was>, C<metadata_wasnt>. Each should be a
+ref to a hash with a single key and value.
+
+C<metadata_is> and C<metadata_isnt> look only at the metadata that the
+node I<currently> has. C<metadata_was> and C<metadata_wasnt> take into
+account the metadata of previous versions of a node. B<NOTE:> Only one
+of these constraints will be honoured, so please only supply one. This
+may change in the future. (For avoidance of confusion - they are
+examined in the following order: is, isnt, was, wasnt.)
 
 Returns results as an array, in reverse chronological order.  Each
 element of the array is a reference to a hash with the following entries:
@@ -548,13 +561,9 @@ to the current version of the node
 
 =back
 
-Each node will only be returned once, regardless of how many times it
-has been changed recently.
-
-B<Note:> interface change between L<CGI::Wiki> 0.23 and 0.24 - this
-method used to pretend to return a comment, which was always the blank
-string. It now returns the metadata hashref, so you can put your
-comments in that.
+Unless you supply C<metadata_was> or C<metadata_wasnt>, each node will
+only be returned once, regardless of how many times it has been
+changed recently.
 
 B<Future plans and thoughts for list_recent_changes>
 
@@ -562,11 +571,11 @@ This method will croak if you try to put more than one key/value in
 the metadata constraint hashes, because the API for that is not yet
 decided. It'll be nice in the future to be able to do for example:
 
-  # All pub nodes edited by Earle in the last week.
+  # All minor edits made by Earle in the last week.
   my @nodes = $store->list_recent_changes(
       days           => 7,
-      metadata_is    => { username => "Earle",
-                          category => "Pubs" }
+      metadata_was   => { username  => "Earle",
+                          edit_type => "Minor tidying." }
   );
 
   # The last three Holborn pubs whose entries were edited.
@@ -584,25 +593,16 @@ sub list_recent_changes {
     my $self = shift;
     my %args = @_;
     if ($args{since}) {
-        return $self->_find_recent_changes_by_criteria(
-            since         => $args{since},
-	    metadata_is   => $args{metadata_is},
-	    metadata_isnt => $args{metadata_isnt},
-        );
+        return $self->_find_recent_changes_by_criteria( %args );
     } elsif ( $args{days} ) {
         my $now = localtime;
 	my $then = $now - ( ONE_DAY * $args{days} );
-        return $self->_find_recent_changes_by_criteria(
-            since         => $then,
-	    metadata_is   => $args{metadata_is},
-	    metadata_isnt => $args{metadata_isnt},
-         );
+        $args{since} = $then;
+        delete $args{days};
+        return $self->_find_recent_changes_by_criteria( %args );
     } elsif ( $args{last_n_changes} ) {
-        return $self->_find_recent_changes_by_criteria(
-            limit         => $args{last_n_changes},
-	    metadata_is   => $args{metadata_is},
-	    metadata_isnt => $args{metadata_isnt},
-        );
+        $args{limit} = delete $args{last_n_changes};
+        return $self->_find_recent_changes_by_criteria( %args );
     } else {
 	croak "Need to supply a parameter";
     }
@@ -610,35 +610,31 @@ sub list_recent_changes {
 
 sub _find_recent_changes_by_criteria {
     my ($self, %args) = @_;
-    my ($since, $limit, $metadata_is, $metadata_isnt) =
-                         @args{ qw( since limit metadata_is metadata_isnt) };
+    my ($since, $limit, $metadata_is,  $metadata_isnt,
+                        $metadata_was, $metadata_wasnt ) =
+                             @args{ qw( since limit metadata_is metadata_isnt
+                                                metadata_was metadata_wasnt) };
     my $dbh = $self->dbh;
 
     my @where;
-    if ( $since ) {
-        my $timestamp = $self->_get_timestamp( $since );
-        push @where, "node.modified >= " . $dbh->quote($timestamp);
-    }
-
+    my $main_table = "node";
     if ( $metadata_is ) {
         if ( scalar keys %$metadata_is > 1 ) {
-            croak "metadata_is criterion must have one key and one value only";
-	}
+            croak "metadata_is must have one key and one value only";
+        }
         my ($type) = keys %$metadata_is;
-	my $value  = $metadata_is->{$type};
-        croak "metadata_is criterion must have one key and one value only"
+        my $value  = $metadata_is->{$type};
+        croak "metadata_is must have one key and one value only"
           if ref $value;
 	push @where, "metadata.metadata_type=" . $dbh->quote($type);
 	push @where, "metadata.metadata_value=" . $dbh->quote($value);
-    }
-
-    if ( $metadata_isnt ) {
+    } elsif ( $metadata_isnt ) {
         if ( scalar keys %$metadata_isnt > 1 ) {
-            croak "metadata_isnt criterion must have one key and one value only";
+            croak "metadata_isnt must have one key and one value only";
 	}
         my ($type) = keys %$metadata_isnt;
 	my $value  = $metadata_isnt->{$type};
-        croak "metadata_isnt criterion must have one key and one value only"
+        croak "metadata_isnt must have one key and one value only"
           if ref $value;
         my @omit = $self->list_nodes_by_metadata(
             metadata_type  => $type,
@@ -646,15 +642,54 @@ sub _find_recent_changes_by_criteria {
         push @where, "node.name NOT IN ("
                    . join(",", map { $dbh->quote($_) } @omit ) . ")"
           if scalar @omit;
+    } elsif ( $metadata_was ) {
+        $main_table = "content";
+        if ( scalar keys %$metadata_was > 1 ) {
+            croak "metadata_was must have one key and one value only";
+	}
+        my ($type) = keys %$metadata_was;
+	my $value  = $metadata_was->{$type};
+            croak "metadata_was must have one key and one value only"
+          if ref $value;
+        push @where, "metadata.metadata_type=" . $dbh->quote($type);
+	push @where, "metadata.metadata_value=" . $dbh->quote($value);
+    } elsif ( $metadata_wasnt ) {
+        $main_table = "content";
+        if ( scalar keys %$metadata_wasnt > 1 ) {
+            croak "metadata_wasnt must have one key and one value only";
+	}
+        my ($type) = keys %$metadata_wasnt;
+	my $value  = $metadata_wasnt->{$type};
+        croak "metadata_wasnt must have one key and one value only"
+         if ref $value;
+        my @omits = $self->_find_recent_changes_by_criteria(
+            since        => $since,
+            metadata_was => $metadata_wasnt,
+        );
+        foreach my $omit ( @omits ) {
+            push @where, "( content.name != " . $dbh->quote($omit->{name})
+                 . "  OR content.version != " . $dbh->quote($omit->{version})
+                 . ")";
+	}
     }
 
-    my $sql = "SELECT DISTINCT node.name, node.version, node.modified
-               FROM node LEFT JOIN metadata ON node.name=metadata.node
-                                           AND node.version=metadata.version"
+    if ( $since ) {
+        my $timestamp = $self->_get_timestamp( $since );
+        push @where, "$main_table.modified >= " . $dbh->quote($timestamp);
+    }
+
+    my $sql = "SELECT DISTINCT
+                               $main_table.name,
+                               $main_table.version,
+                               $main_table.modified
+               FROM $main_table
+                    LEFT JOIN metadata
+                           ON $main_table.name=metadata.node
+                          AND $main_table.version=metadata.version
+              "
             . ( scalar @where ? " WHERE " . join(" AND ",@where)
 			                     : "" )
-            . " ORDER BY node.modified DESC";
-
+            . " ORDER BY $main_table.modified DESC";
     if ( $limit ) {
         croak "Bad argument $limit" unless $limit =~ /^\d+$/;
         $sql .= " LIMIT $limit";

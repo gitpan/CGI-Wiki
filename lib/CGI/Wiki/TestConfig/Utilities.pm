@@ -5,7 +5,7 @@ use strict;
 use CGI::Wiki::TestConfig;
 
 use vars qw( $num_stores $num_combinations $VERSION );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 =head1 NAME
 
@@ -201,7 +201,8 @@ $num_combinations = scalar @combinations;
 
   CGI::Wiki::TestConfig::Utilities->reinitialise_stores;
 
-Clears out all of the configured storage backends.
+Clears out all of the configured storage backends by dropping and
+recreating the tables.  SQLite sometimes doesn't like this.
 
 =cut
 
