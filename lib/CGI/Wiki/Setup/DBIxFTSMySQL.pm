@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::DBIxFTSMySQL;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 use DBI;
 use DBIx::FullTextSearch;
@@ -24,6 +24,10 @@ Set up DBIx::FullTextSearch indexes for use with CGI::Wiki. Has only
 one function, C<setup>, which takes as arguments the database name,
 the username and the password. The username must be able to create and
 drop tables in the database.
+
+Note that any pre-existing L<CGI::Wiki> indexes stored in the database
+will be I<cleared> by this function, so if you have existing data you
+probably want to use the C<store> parameter to get it re-indexed.
 
 =cut
 

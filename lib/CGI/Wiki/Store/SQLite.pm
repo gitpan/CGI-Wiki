@@ -53,17 +53,25 @@ sub new {
 
   $store->check_and_write_node( node     => $node,
 				content  => $content,
-				checksum => $checksum ) or return 0;
+				checksum => $checksum,
+                                links_to => \@links_to ) or return 0;
 
 Locks the node, verifies the checksum and writes the content to the
 node, unlocks the node.  Returns 1 on success, 0 if checksum doesn't
 match, croaks on error.
 
+The C<links_to> parameter is optional, but if you do supply it then
+this node will be returned when calling C<list_backlinks> on the nodes
+in C<@links_to>. B<Note> that if you don't supply the ref then the store
+will assume that this node doesn't link to any others, and update
+itself accordingly.
+
 =cut
 
 sub check_and_write_node {
     my ($self, %args) = @_;
-    my ($node, $content, $checksum) = @args{qw(node content checksum)};
+    my ($node, $content, $checksum, $links_to) =
+                                     @args{qw(node content checksum links_to)};
 
     my $dbh = $self->{_dbh};
     $dbh->{AutoCommit} = 0;
@@ -72,7 +80,7 @@ sub check_and_write_node {
         $dbh->do("END TRANSACTION");
         $dbh->do("BEGIN TRANSACTION");
         $self->verify_checksum($node, $checksum) or return 0;
-        $self->write_node_after_locking($node, $content);
+        $self->write_node_after_locking($node, $content, $links_to);
     };
     if ($@) {
         my $error = $@;

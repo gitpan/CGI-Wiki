@@ -1,6 +1,6 @@
 local $^W = 1;
 use strict;
-use Test::More tests => 362;
+use Test::More tests => 404;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -70,7 +70,7 @@ foreach my $configref (@tests) {
     SKIP: {
         skip "Store $store_class and search "
 	   . ( defined $search_class ? $search_class : "undef" )
-	   . " not configured for testing", 51 unless $testconfig{do};
+	   . " not configured for testing", 57 unless $testconfig{do};
 
         print "#####\n##### Test config: STORE: $store_class, SEARCH: "
 	   . ( defined $search_class ? $search_class : "undef" ) . "\n#####\n";
@@ -120,8 +120,9 @@ foreach my $configref (@tests) {
 	}
 
         ##### Test succesful creation.
-        my $wiki = CGI::Wiki->new( store  => $store,
-				   search => $search );
+        my $wiki = CGI::Wiki->new( store          => $store,
+				   search         => $search,
+				   extended_links => 1 );
         isa_ok( $wiki, "CGI::Wiki" );
         ok( $wiki->retrieve_node("Home"), "...and we can talk to the store" );
 
@@ -305,6 +306,43 @@ foreach my $configref (@tests) {
                          'This node exists solely to contain the word "home".')
             or die "Couldn't cleanup";
 
+        ##### Test backlinks.
+        $wiki->write_node("Backlink Test One",
+             "This is some text.  It contains a link to [Backlink Test Two].");
+        $wiki->write_node("Backlink Test Two",
+             # don't break this line to pretty-indent it or the formatter will
+             # think the second line is code and not pick up the link.
+             "This is some text.  It contains a link to [Backlink Test Three] and one to [Backlink Test One].");
+        $wiki->write_node("Backlink Test Three",
+             "This is some text.  It contains a link to [Backlink Test One].");
+
+        my @links = $wiki->list_backlinks( node => "Backlink Test Two" );
+        is_deeply( \@links, [ "Backlink Test One" ],
+                   "backlinks work on nodes linked to once" );
+        @links = $wiki->list_backlinks( node => "Backlink Test One" );
+        is_deeply( [ sort @links],
+                   [ "Backlink Test Three", "Backlink Test Two" ],
+                   "...and nodes linked to twice" );
+        @links = $wiki->list_backlinks( node => "idonotexist" );
+        is_deeply( \@links, [],
+                  "...returns empty list for nonexistent node not linked to" );
+        @links = $wiki->list_backlinks( node => "001 Defenestration" );
+        is_deeply( \@links, [],
+                  "...returns empty list for existing node not linked to" );
+
+        $wiki->delete_node("Backlink Test One")   or die "Couldn't cleanup";
+        $wiki->delete_node("Backlink Test Two")   or die "Couldn't cleanup";
+        $wiki->delete_node("Backlink Test Three") or die "Couldn't cleanup";
+
+        @links = $wiki->list_backlinks( node => "Backlink Test Two" );
+        is_deeply( \@links, [],
+                   "...returns empty list when the only node linking to this one has been deleted" );
+
+        eval { $wiki->write_node("Multiple Backlink Test", "This links to [[Node One]] and again to [[Node One]]"); };
+        is( $@, "", "doesn't die when writing a node that links to the same place twice" );
+
+        $wiki->delete_node("Multiple Backlink Test") or die "Couldn't cleanup";
+
 	##### Test recent_changes (must do this as the last in each batch
         ##### of tests since some tests involve writing, and some configs
         ##### re-use the same database (eg mysql-nosearch, mysql-dbixfts)
@@ -312,6 +350,9 @@ foreach my $configref (@tests) {
         #   Another Node, Everyone's Favourite Hobby, Node1
 
         # Test by "in last n days".
+	my $slept = sleep(2);
+	warn "Slept for less than a second, 'in last n days' test may fail"
+	  unless $slept >= 1;
         foreach my $node ("Node1", "Everyone's Favourite Hobby",
 			  "Another Node") { # note the order
             %node_data = $wiki->retrieve_node($node);
@@ -347,7 +388,7 @@ foreach my $configref (@tests) {
 
         # Test by "since time T".
         my $time = time;
-	my $slept = sleep(2);
+	$slept = sleep(2);
 	warn "Slept for less than a second, 'since' test may fail"
 	  unless $slept >= 1;
         %node_data = $wiki->retrieve_node("Node1");

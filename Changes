@@ -1,3 +1,50 @@
+0.15    5 January 2003
+        Amended store setup modules so their 'setup' functions don't
+          wipe pre-existing data; added 'cleardb' functions for when you
+          really do want to wipe it.
+        Along with that, amended the setup scripts in ./bin/ to take a
+          --force-preclear option.  Now they leave existing data by default.
+        Added standalone tests for CGI::Wiki::Formatter::Default
+        Added $formatter->find_internal_links method and tests.
+
+        Implemented backlinks!  Thanks to blair christensen for the idea,
+          and sorry for taking so long to get around to it.
+
+        *** IMPORTANT NOTE ***
+        *After* upgrading, you will need to re-run the relevant database setup
+        script (in ./bin/) on any databases created using earlier versions of
+        CGI::Wiki, in order that the internal_links table gets created.  From
+        version 0.15, these scripts won't affect data in existing tables, as
+        long as you don't supply the --force-preclear option, so this is safe.
+
+ ===>    *** IF YOU DON'T DO THIS THEN YOUR CODE WILL FALL OVER AND DIE. ***
+
+        You have been warned.
+
+        (You can do the database munging before you install this new version
+        -- the old versions won't mind the extra table -- but
+ ===>                     *** MAKE SURE ***
+        to invoke the scripts as something like
+          perl -Ilib bin/user-setup-[...]
+        so you get the *new* setup modules which *won't* hose your data
+        (the old ones did, ugh).)
+
+        The backlink data will also not exist for links *from* a given node
+        until you re-write that node.  Take your wiki offline then do
+        something like
+
+          my $wiki = CGI::Wiki->new( %conf );
+          # (Where %conf is exactly as you would set this up for your actual
+          #  Wiki application, including your store, search and formatter
+          #  options exactly as you use them live.)
+          my @nodes = $wiki->list_all_nodes;
+          foreach my $node ( @nodes ) {
+            my %nodedata = $wiki->retrieve_node( $node );
+            $wiki->write_node($node, $nodedata{content}, $nodedata{checksum});
+          }
+
+        to refresh all the nodes in your database.
+
 0.14    3 January 2003
         Added $store->node_exists method and tests.
         Amended $store->list_recent_changes to take a 'last_n_changes'

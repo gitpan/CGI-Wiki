@@ -9,10 +9,8 @@ my $testing = $config{dbname};
 if ($testing) {
     my $dbname = $config{dbname};
 
-    # The "test database" is actually just a file; get rid of it if it exists.
-    unlink $dbname;
-
-    # Set up the tables in the test database.
+    # Clear out the test database, then set up tables afresh.
+    CGI::Wiki::Setup::SQLite::cleardb($dbname);
     CGI::Wiki::Setup::SQLite::setup($dbname);
 
     # Put in the test data.

@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::SII;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 use DBI;
 use Search::InvertedIndex;
@@ -12,7 +12,7 @@ use Carp;
 
 =head1 NAME
 
-CGI::Wiki::Setup::SII - set up Search::InvertedIndex indexes for CGI::Wiki
+CGI::Wiki::Setup::SII - Set up Search::InvertedIndex indexes for CGI::Wiki
 
 =head1 SYNOPSIS
 
@@ -33,6 +33,10 @@ only one function, C<setup>, which takes one mandatory argument,
 C<indexdb>, the C<Search::InvertedIndex::DB::*> object to use as the
 backend, and one optional argument, C<store>, a C<CGI::Wiki::Store::*
 object> corresponding to existing data that you wish to (re-)index.
+
+Note that any pre-existing L<CGI::Wiki> indexes stored in C<indexdb>
+will be I<cleared> by this function, so if you have existing data you
+probably want to use the C<store> parameter to get it re-indexed.
 
 =cut
 

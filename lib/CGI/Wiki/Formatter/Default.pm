@@ -2,8 +2,8 @@ package CGI::Wiki::Formatter::Default;
 
 use strict;
 
-use vars qw( $VERSION );
-$VERSION = '0.01';
+use vars qw( $VERSION @_links_found );
+$VERSION = '0.02';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -89,7 +89,7 @@ sub _init {
 
 =item B<format>
 
-  my $html = $formatter->format($submitted_content);
+  my $html = $formatter->format( $content );
 
 Escapes any tags which weren't specified as allowed on creation, then
 interpolates any macros, then calls Text::WikiFormat::format (with the
@@ -134,5 +134,60 @@ sub format {
 			prefix         => $self->{_node_prefix},
 			implicit_links => $self->{_implicit_links} } );
 }
+
+=item B<find_internal_links>
+
+  my @links_to = $formatter->find_internal_links( $content );
+
+Returns a list of all nodes that the supplied content links to.
+(Obviously this is dependent on object properties such as
+C<extended_links> etc.)
+
+=cut
+
+sub find_internal_links {
+    my ($self, $raw) = @_;
+
+    @_links_found = ();
+
+    my $foo = wikiformat($raw,
+                      { link => sub {
+                            my ($link, $opts) = @_;
+                            $opts ||= {};
+			    my $title;
+			    ($link, $title) = split(/\|/, $link, 2)
+			      if $opts->{extended};
+			    push @CGI::Wiki::Formatter::Default::_links_found,
+                              $link;
+                            return ""; # don't care about output
+                                     }
+                      },
+		      { extended       => $self->{_extended_links},
+			prefix         => $self->{_node_prefix},
+			implicit_links => $self->{_implicit_links} } );
+
+    my @links = @_links_found;
+    @_links_found = ();
+    return @links;
+}
+
+=back
+
+=head1 SEE ALSO
+
+L<CGI::Wiki>
+
+=head1 AUTHOR
+
+Kake Pugh (kake@earth.li).
+
+=head1 COPYRIGHT
+
+     Copyright (C) 2002-2003 Kake Pugh.  All Rights Reserved.
+
+This module is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
 
 1;

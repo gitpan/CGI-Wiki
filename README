@@ -6,9 +6,30 @@ DESCRIPTION
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
-IMPORTANT NOTE
-    There was a small interface change between versions 0.05 and 0.10 - see
-    the 'Changes' file for details.
+IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.15 VERSIONS
+    The database schema changed between versions 0.14 and 0.15 - see the
+    'Changes' file for details. This is really kinda important, please do
+    check this out or your code will die when it tries to use any existing
+    databases.
+
+SIGNIFICANT RECENT CHANGES
+
+0.15    5 January 2003
+        Implemented backlinks.  Database schema change, see 'Changes' file.
+
+0.11    31 December 2002
+        Changes suggested by blair christensen, to allow alternate formatters.
+
+0.10    19 December 2002
+        Added a Search::InvertedIndex backend; now you can do searches without
+          the need for MySQL.
+
+0.04    17 November 2002
+        Added a DBD::SQLite storage backend (thanks to blair christensen
+          for a patch that makes up part of this).
+
+0.01    28 October 2002
+        Initial release.
 
 SYNOPSIS
       # Set up a wiki object with an SQLite storage backend, and an
@@ -27,207 +48,44 @@ SYNOPSIS
       my $wiki      = CGI::Wiki->new( store     => $store,
                                       search    => $search );
 
-      # Do all the CGI stuff.
-      my $q      = CGI->new;
-      my $action = $q->param("action");
-      my $node   = $q->param("node");
 
-      if ($action eq 'display') {
-          my $raw    = $wiki->retrieve_node($node);
-          my $cooked = $wiki->format($raw);
-          print_page(node    => $node,
-                     content => $cooked);
-      } elsif ($action eq 'preview') {
-          my $submitted_content = $q->param("content");
-          my $preview_html      = $wiki->format($submitted_content);
-          print_editform(node    => $node,
-                         content => $submitted_content,
-                         preview => $preview_html);
-      } elsif ($action eq 'commit') {
-          my $submitted_content = $q->param("content");
-          my $cksum = $q->param("checksum");
-          my $written = $wiki->write_node($node, $submitted_content, $cksum);
-          if ($written) {
-              print_success($node);
-          } else {
-              handle_conflict($node, $submitted_content);
-          }
-      }
-
-METHODS
-    new
-          # Set up store, search and formatter objects.
-          my $store     = CGI::Wiki::Store::SQLite->new(
-              dbname => "/home/wiki/store.db" );
-          my $indexdb   = Search::InvertedIndex::DB::DB_File_SplitHash->new(
-              -map_name  => "/home/wiki/indexes.db",
-              -lock_mode => "EX" );
-          my $search    = CGI::Wiki::Search::SII->new(
-              indexdb => $indexdb );
-          my $formatter = My::HomeMade::Formatter->new;
-
-          my $wiki = CGI::Wiki->new(
-              store     => $store,     # mandatory
-              search    => $search,    # defaults to undef
-              formatter => $formatter  # defaults to something suitable
-          );
-
-        "store" must be an object of type "CGI::Wiki::Store::*" and "search"
-        if supplied must be of type "CGI::Wiki::Search::*" (though this
-        isn't checked yet - FIXME). If "formatter" isn't supplied, it
-        defaults to an object of class CGI::Wiki::Formatter::Default.
-
-        You can get a searchable Wiki up and running on a system without an
-        actual database server by using the SQLite storage backend with the
-        SII/DB_File search backend - cut and paste the lines above for a
-        quick start, and see CGI::Wiki::Store::SQLite,
-        CGI::Wiki::Search::SII, and
-        Search::InvertedIndex::DB::DB_File_SplitHash when you want to learn
-        the details.
-
-        "formatter" can be any object that behaves in the right way; this
-        essentially means that it needs to provide a "format" method which
-        takes in raw text and returns the formatted version. See
-        CGI::Wiki::Formatter::Default for an example. Note that you can
-        create a suitable object from a sub very quickly by using
-        Test::MockObject like so:
-
-          my $formatter = Test::MockObject->new();
-          $formatter->mock( 'format', sub { my ($self, $raw) = @_;
-                                            return uc( $raw );
-                                          } );
-
-        I'm not sure whether to put this in the module or not - it'd let you
-        just supply a sub instead of an object as the formatter, but it
-        feels wrong to be using a Test::* module in actual code.
+MAJOR METHODS
 
     write_node
-          my $written = $wiki->write_node($node, $content, $checksum);
-          if ($written) {
-              display_node($node);
-          } else {
-              handle_conflict();
-          }
-
-        Writes the specified content into the specified node in the backend
-        storage, and indexes/reindexes the node in the search indexes, if a
-        search is set up. Note that you can blank out a node without
-        deleting it by passing the empty string as $content, if you want to.
-
-        If you expect the node to already exist, you must supply a checksum,
-        and the node is write-locked until either your checksum has been
-        proved old, or your checksum has been accepted and your change
-        committed. If no checksum is supplied, and the node is found to
-        already exist and be nonempty, a conflict will be raised.
-
-        All parameters are mandatory. Returns 1 on success, 0 on conflict,
-        croaks on error.
+          $wiki->write_node($node_name, $content, $checksum);
 
     format
           my $cooked = $wiki->format($raw);
 
-        Passed straight through to your chosen formatter object.
+    delete_node
+          $wiki->delete_node($node_name);
 
-    store
-          my $store  = $wiki->store;
-          my $dbname = eval { $wiki->store->dbname; }
-            or warn "Not a DB backend";
+    list_all_nodes
+          my @node_names = $wiki->list_all_nodes;
 
-        Returns the storage backend object.
+    list_backlinks
+          my @links_to_me = $wiki->list_backlinks($node_name);
 
-    search_obj
-          my $search_obj = $wiki->search_obj;
+    list_recent_changes
+          my @last_week_edits  = $wiki->list_recent_changes( days => 7 );
+          my @last_ten_changes = $wiki->list_recent_changes(
+                                                  last_n_changes => 10 );
 
-        Returns the search backend object.
+    node_exists
+          print "Got wombats" if $wiki->node_exists("Wombats");
 
-    Methods provided by storage backend
-        See the docs for your chosen storage backend to see how these work.
+    retrieve_node
+          my $homepage_content = $wiki->retrieve_node("Home Page");
 
-        * delete_node (also calls the delete_node method in the search
-        backend, if any)
-        * list_all_nodes
-        * list_recent_changes
-        * node_exists
-        * retrieve_node
-        * retrieve_node_and_checksum (deprecated)
-        * verify_checksum
+          my %node_data = $wiki->retrieve_node( $node_name );
+          print "Last Modified:    $node_data{last_modified}\n";
+          print "Current Version:  $node_data{version}\n";
+          print "Current Checksum: $node_data{checksum}\n";
+          print "Current Content:  $node_data{content}\n";
 
-    Methods provided by search backend
-        See the docs for your chosen search backend to see how these work.
+    verify_checksum
+          my $as_i_left_it = $wiki->verify_checksum( $node_name, $checksum );
 
-        * search_nodes
-        * supports_phrase_searches
-
-    Methods provided by formatter backend
-        See the docs for your chosen formatter backend to see how these
-        work.
-
-        * format
-
-SEE ALSO
-    * CGI::Wiki::Formatter::Default
-    * CGI::Wiki::Store::MySQL
-    * CGI::Wiki::Store::Pg
-    * CGI::Wiki::Store::SQLite
-    * CGI::Wiki::Store::Database
-    * CGI::Wiki::Search::DBIxFTS
-    * CGI::Wiki::Search::SII
-    * DBIx::FullTextSearch
-    * Search::InvertedIndex
-    * Text::WikiFormat
-
-    Other ways to implement Wikis in Perl include:
-
-    * CGI::pWiki
-    * AxKit::XSP::Wiki
-    * UseModWiki
-
-AUTHOR
-    Kake Pugh (kake@earth.li).
-
-COPYRIGHT
-         Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
-
-    This module is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself.
-
-FEEDBACK
-    Please send me mail and tell me what you think of this. It's my first
-    CPAN module, so stuff probably sucks. Tell me what sucks, send me
-    patches, send me tests. Or if it doesn't suck, tell me that too. I love
-    getting mail, even if all it says is "I used your thing and I like it",
-    or "I didn't use your thing because of X".
-
-    blair christensen, Clint Moore and Max Maischein won the beer.
-
-CREDITS
-    Various London.pm types helped out with code review, encouragement,
-    JFDI, style advice, code snippets, module recommendations, and so on;
-    far too many to name individually, but particularly Richard Clamp, Tony
-    Fisher, Mark Fowler, and Chris Ball.
-
-    blair christensen sent patches and gave me some good ideas. chromatic
-    patiently applied my patches to Text::WikiFormat.
-
-    And never forget to say thanks to those who wrote the stuff that your
-    module depends on. Come claim beer or home-made cakes[0] at the next
-    YAPC, people.
-
-    [0] cakes require pre-booking
-
-CGI::WIKI IN ACTION!
-    Max Maischein has set up a CGI::Wiki-based wiki describing various file
-    formats, at <http://www.corion.net/cgi-bin/wiki.cgi>
-
-    I've set up a clone of grubstreet, a usemod wiki, at
-    <http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> -- it's not yet
-    feature complete, and it uses a custom formatter module based on
-    CGI::Wiki::Formatter::Default, but other than the formatter (which will
-    be released if/when my latest patches go into Text::WikiFormat :) ) it's
-    pure CGI::Wiki. Code is at
-    <http://the.earth.li/~kake/code/cgi-wiki-usemod-emulator/>
-
-GRATUITOUS PLUG
-    I'm only obsessed with Wikis because of the Open-Source Guide to London
-    -- http://grault.net/grubstreet/
+    search_nodes
+          my @nodes = $search->nodes( "camel" );
 

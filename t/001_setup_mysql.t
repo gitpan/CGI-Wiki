@@ -9,7 +9,8 @@ my $testing = $config{dbname};
 if ($testing) {
     my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
 
-    # Set up the tables in the test database.
+    # Clear out the test database, then set up tables afresh.
+    CGI::Wiki::Setup::MySQL::cleardb($dbname, $dbuser, $dbpass);
     CGI::Wiki::Setup::MySQL::setup($dbname, $dbuser, $dbpass);
 
     # Put in the test data.

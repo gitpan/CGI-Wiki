@@ -4,11 +4,13 @@ use strict;
 use Getopt::Long;
 use CGI::Wiki::Setup::MySQL;
 
-my ($dbname, $dbuser, $dbpass, $help);
-GetOptions("name=s" => \$dbname,
-           "user=s" => \$dbuser,
-           "pass=s" => \$dbpass,
-           "help"   => \$help,);
+my ($dbname, $dbuser, $dbpass, $help, $preclear);
+GetOptions( "name=s"         => \$dbname,
+            "user=s"         => \$dbuser,
+            "pass=s"         => \$dbpass,
+            "help"           => \$help,
+            "force-preclear" => \$preclear
+           );
 
 unless (defined($dbname)) {
     print "You must supply a database name with the --name option\n";
@@ -21,6 +23,10 @@ if ($help) {
     exit 0;
 }
 
+if ($preclear) {
+    CGI::Wiki::Setup::MySQL::cleardb($dbname, $dbuser, $dbpass);
+}
+
 CGI::Wiki::Setup::MySQL::setup($dbname, $dbuser, $dbpass);
 
 =head1 NAME
@@ -29,13 +35,24 @@ user-setup-mysql - set up a MySQL storage backend for CGI::Wiki
 
 =head1 SYNOPSIS
 
+# Set up or update the storage backend, leaving any existing data intact.
+# Useful for upgrading from old versions of CGI::Wiki to newer ones with
+# more backend features.
+
+  user-setup-mysql --name mywiki \
+                   --user wiki  \
+                   --pass wiki
+
+# Clear out any existing data and set up a fresh backend from scratch.
+
   user-setup-mysql --name mywiki \
                    --user wiki  \
                    --pass wiki  \
+                   --force-preclear
 
 =head1 DESCRIPTION
 
-Takes three arguments:
+Takes three mandatory arguments:
 
 =over 4
 
@@ -51,6 +68,17 @@ to create and drop tables in the database.
 =item pass
 
 The user's database password.
+
+=back
+
+and one optional flag:
+
+=over 4
+
+=item force-preclear
+
+By default, this script will leave any existing data alone.  To force
+that to be cleared out first, pass the C<--force-preclear> flag.
 
 =back
 

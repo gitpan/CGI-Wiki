@@ -180,9 +180,32 @@ sub verify_checksum {
     return ( $checksum eq md5_hex($content) );
 }
 
+=item B<list_backlinks>
+
+  # List all nodes that link to the Home Page.
+  my @links = $store->list_backlinks( node => "Home Page" );
+
+=cut
+
+sub list_backlinks {
+    my ( $self, %args ) = @_;
+    my $node = $args{node};
+    croak "Must supply a node name" unless $node;
+    my $dbh = $self->dbh;
+    my $sql = "SELECT link_from FROM internal_links WHERE link_to="
+            . $dbh->quote($node);
+    my $sth = $dbh->prepare($sql);
+    $sth->execute or croak $dbh->errstr;
+    my @backlinks;
+    while ( my $backlink = $sth->fetchrow_array ) {
+        push @backlinks, $backlink;
+    }
+    return @backlinks;
+}
+
 =item B<write_node_after_locking>
 
-  $store->write_node_after_locking($node, $content)
+  $store->write_node_after_locking($node, $content, \@links_to)
       or handle_error();
 
 Writes the specified content into the specified node. Making sure that
@@ -191,13 +214,20 @@ chosen subclass). This method shouldn't really be used directly as it
 might overwrite someone else's changes. Croaks on error but otherwise
 returns true.
 
+Supplying a ref to an array of nodes that this ones links to is
+optional, but if you do supply it then this node will be returned when
+calling C<list_backlinks> on the nodes in C<@links_to>. B<Note> that
+if you don't supply the ref then the store will assume that this node
+doesn't link to any others, and update itself accordingly.
+
 =cut
 
 sub write_node_after_locking {
-    my ($self, $node, $content) = @_;
+    my ($self, $node, $content, $links_to_ref) = @_;
     my $dbh = $self->dbh;
 
     my $timestamp = $self->_get_timestamp();
+    my @links_to = @{ $links_to_ref || [] }; # default to empty array
     my $comment = ""; # Not implemented yet.
     my $version;
 
@@ -235,6 +265,15 @@ sub write_node_after_locking {
          . ")";
     $dbh->do($sql) or croak "Error updating database: " . DBI->errstr;
 
+    # And to the backlinks.
+    $dbh->do("DELETE FROM internal_links WHERE link_from="
+             . $dbh->quote($node) ) or croak $dbh->errstr;
+    foreach my $links_to ( @links_to ) {
+        $sql = "INSERT INTO internal_links (link_from, link_to) VALUES ("
+             . join(", ", map { $dbh->quote($_) } ( $node, $links_to ) ) . ")";
+        $dbh->do($sql) or croak $dbh->errstr;
+    }
+
     return 1;
 }
 
@@ -267,6 +306,8 @@ sub delete_node {
     $dbh->do($sql) or croak "Deletion failed: " . DBI->errstr;
     $sql = "DELETE FROM content WHERE name=" . $dbh->quote($node);
     $dbh->do($sql) or croak "Deletion failed: " . DBI->errstr;
+    $sql = "DELETE FROM internal_links WHERE link_from=" . $dbh->quote($node);
+    $dbh->do($sql) or croak $dbh->errstr;
     # And finish it here.
     return 1;
 }

@@ -38,11 +38,18 @@ sub _dsn {
 
   $store->check_and_write_node( node     => $node,
 				content  => $content,
-				checksum => $checksum ) or return 0;
+				checksum => $checksum,
+                                links_to => \@links_to ) or return 0;
 
 Locks the node, verifies the checksum and writes the content to the
 node, unlocks the node. Returns 1 on successful writing, 0 if checksum
 doesn't match, croaks on error.
+
+The C<links_to> parameter is optional, but if you do supply it then
+this node will be returned when calling C<list_backlinks> on the nodes
+in C<@links_to>. B<Note> that if you don't supply the ref then the store
+will assume that this node doesn't link to any others, and update
+itself accordingly.
 
 Note:  Uses MySQL's user level locking, so any locks are released when
 the database handle disconnects.  Doing it like this because I can't seem
@@ -52,7 +59,8 @@ to get it to work properly with transactions.
 
 sub check_and_write_node {
     my ($self, %args) = @_;
-    my ($node, $content, $checksum) = @args{qw(node content checksum)};
+    my ($node, $content, $checksum, $links_to) =
+                                     @args{qw(node content checksum links_to)};
 
     $self->_lock_node($node) or croak "Can't lock node";
     my $ok = $self->verify_checksum($node, $checksum);
@@ -60,7 +68,7 @@ sub check_and_write_node {
         $self->_unlock_node($node) or carp "Can't unlock node";
 	return 0;
     }
-    $self->write_node_after_locking($node, $content);
+    $self->write_node_after_locking($node, $content, $links_to);
     $self->_unlock_node($node) or carp "Can't unlock node";
     return 1;
 }
