@@ -1,3 +1,17 @@
+0.31    26 April 2003
+        Added an index to the metadata table in the postgres setup, to
+          speed up RecentChanges.  To apply this index to an existing
+          database you need to do (as the database superuser):
+
+          bench=# create index metadata_nodeindex on metadata
+                   (node, version, metadata_type, metadata_value);
+
+        It will also help speed things up if you run:
+
+          bench=# analyze;
+
+        every so often, maybe once a week.
+
 0.30    22 April 2003
         Added support for supplying 'host' parameter when connecting to
           MySQL/Postgres databases (requested and assisted by Paul Makepeace).

@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::Pg;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use DBI;
 use Carp;
@@ -48,6 +48,8 @@ CREATE TABLE metadata (
   metadata_type  varchar(200) NOT NULL DEFAULT '',
   metadata_value text         NOT NULL DEFAULT ''
 )
+|, qq|
+CREATE INDEX metadata_index ON metadata (node, version, metadata_type, metadata_value)
 | ]
 
 );

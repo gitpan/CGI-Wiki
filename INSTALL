@@ -1,5 +1,11 @@
 NOTES FOR UPGRADERS:
 
+  I added an index to the metadata table in the postgres setup in
+  version 0.31 - this really speeds up RecentChanges on larger wikis.
+  See the 'Changes' file for details on applying the index to existing
+  databases.  I've not done any benchmarks on MySQL and SQLite yet,
+  so I'm leaving those alone for now.
+
   The database schema changed between versions 0.14 and 0.15, and again
   between versions 0.16 and 0.20 - see the 'Changes' file for details.
   This is really kinda important, please do check this out if you're
