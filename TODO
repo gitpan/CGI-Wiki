@@ -5,8 +5,6 @@
 
 - Stemming and phrase searches for the Search::InvertedIndex backends.
 
-- Add plugin support - see my use.perl journal or the grubstreet archives.
-
 - The instructions in INSTALL are pretty complicated.  An easier procedure
   or better docs would be good.
 

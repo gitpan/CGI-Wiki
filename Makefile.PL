@@ -209,7 +209,6 @@ WriteMakefile( NAME         => "CGI::Wiki",
 				 'HTML::PullParser' => 0,
 				 'Digest::MD5' => 0,
 			         'Test::More' => 0,
-			         'Test::Warn' => 0,
                                  'Test::MockObject' =>'0.07',#earlier no mock()
 			         'Class::Delegation' => 0,
 			         'Time::Piece' => 0,

@@ -1,3 +1,9 @@
+0.42    16 June 2003
+        Dropped Test::Warn from the dependencies - it's too much installing
+          for too little gain (I was hardly using it).
+        Made CGI::Wiki::TestConfig::Utilities check for the Postgres
+          Search::InvertedIndex backend, and test using that if possible.
+
 0.41    27 May 2003
         Changed the order of things when registering a plugin, so the
           on_register method can access the datastore properly.

@@ -1,25 +1,15 @@
 local $^W = 1;
 use strict;
 use CGI::Wiki::TestConfig::Utilities;
-use Test::More tests => (5 + 48*$CGI::Wiki::TestConfig::Utilities::num_combinations);
-use Test::Warn;
+use Test::More tests => (2 + 48*$CGI::Wiki::TestConfig::Utilities::num_combinations);
 
-##### Test whether we can be 'use'd with no warnings.
 BEGIN {
-  warnings_are { use_ok('CGI::Wiki') } [], "CGI::Wiki raised no warnings";
+    use_ok( "CGI::Wiki" );
 };
 
 # Note - the Search::InvertedIndex test will raise warnings about the
 # test database not being open at cleanup. This is a known problem
 # which shouldn't affect normal use.
-
-##### Test that calling with deprecated options warns.
-foreach my $obsolete_param ( qw( storage_backend search_backend ) ) {
-    warning_like { CGI::Wiki->new( storage_backend => "foo",
-				   store => "foo" ) }
-                 qr/parameter is no longer used/,
-                 "warnings raised on obsolete parameter $obsolete_param";
-}
 
 ##### Test failed creation.  Note this has a few tests missing.
 eval { CGI::Wiki->new;

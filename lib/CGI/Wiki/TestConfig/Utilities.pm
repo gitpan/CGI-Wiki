@@ -5,7 +5,7 @@ use strict;
 use CGI::Wiki::TestConfig;
 
 use vars qw( $num_stores $num_combinations $VERSION );
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 =head1 NAME
 
@@ -123,6 +123,26 @@ if ( $CGI::Wiki::TestConfig::config{search_invertedindex} && $stores{MySQL} ) {
     $searches{SIIMySQL} = undef;
 }
 
+# Test the Pg SII backend, if we can.
+eval { require Search::InvertedIndex::DB::Pg; };
+my $sii_pg = $@ ? 0 : 1;
+if ( $CGI::Wiki::TestConfig::config{search_invertedindex} && $stores{Pg}
+     && $sii_pg ) {
+    require Search::InvertedIndex::DB::Pg;
+    require CGI::Wiki::Search::SII;
+    my %dbconfig = %{$CGI::Wiki::TestConfig::config{Pg}};
+    my $indexdb = Search::InvertedIndex::DB::Pg->new(
+                       -db_name    => $dbconfig{dbname},
+                       -username   => $dbconfig{dbuser},
+                       -password   => $dbconfig{dbpass},
+	   	       -hostname   => $dbconfig{dbhost},
+                       -table_name => 'siindex',
+                       -lock_mode  => 'EX' );
+    $searches{SIIPg} = CGI::Wiki::Search::SII->new( indexdb => $indexdb );
+} else {
+    $searches{SIIPg} = undef;
+}
+
 # Also test the default DB_File backend, if we have S::II installed at all.
 if ( $CGI::Wiki::TestConfig::config{search_invertedindex} ) {
     require Search::InvertedIndex;
@@ -144,6 +164,10 @@ push @combinations, { store_name  => "MySQL",
 		      store       => $stores{MySQL},
 		      search_name => "SIIMySQL",
 		      search      => $searches{SIIMySQL} };
+push @combinations, { store_name  => "Pg",
+		      store       => $stores{Pg},
+		      search_name => "SIIPg",
+		      search      => $searches{SIIPg} };
 
 # All stores are compatible with the default S::II search, and with no search.
 foreach my $store_name ( keys %stores ) {
