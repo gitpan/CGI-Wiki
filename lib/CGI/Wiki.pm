@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -341,19 +341,23 @@ See the docs for your chosen formatter backend to see how these work.
 
 =over 4
 
-=item * L<CGI::Wiki::Formatter::Default>
+=item * L<CGI::Wiki::Formatter::Default> (in this distro)
 
-=item * L<CGI::Wiki::Store::MySQL>
+=item * L<CGI::Wiki::Formatter::Pod>
 
-=item * L<CGI::Wiki::Store::Pg>
+=item * L<CGI::Wiki::Formatter::UseMod>
 
-=item * L<CGI::Wiki::Store::SQLite>
+=item * L<CGI::Wiki::Store::MySQL> (in this distro)
 
-=item * L<CGI::Wiki::Store::Database>
+=item * L<CGI::Wiki::Store::Pg> (in this distro)
 
-=item * L<CGI::Wiki::Search::DBIxFTS>
+=item * L<CGI::Wiki::Store::SQLite> (in this distro)
 
-=item * L<CGI::Wiki::Search::SII>
+=item * L<CGI::Wiki::Store::Database> (in this distro)
+
+=item * L<CGI::Wiki::Search::DBIxFTS> (in this distro)
+
+=item * L<CGI::Wiki::Search::SII> (in this distro)
 
 =item * L<DBIx::FullTextSearch>
 
@@ -405,14 +409,9 @@ JFDI, style advice, code snippets, module recommendations, and so on;
 far too many to name individually, but particularly Richard Clamp,
 Tony Fisher, Mark Fowler, and Chris Ball.
 
-blair christensen sent patches and gave me some good ideas.  chromatic
-patiently applied my patches to L<Text::WikiFormat>.
-
-And never forget to say thanks to those who wrote the stuff that your
-module depends on. Come claim beer or home-made cakes[0] at the next
-YAPC, people.
-
-[0] cakes require pre-booking
+blair christensen sent patches and gave me some good ideas. chromatic
+continues to patiently apply my patches to L<Text::WikiFormat>. The
+grubstreet team keep me well-supplied with encouragement and bug reports.
 
 =head1 CGI::WIKI IN ACTION!
 
@@ -421,16 +420,14 @@ file formats, at L<http://www.corion.net/cgi-bin/wiki.cgi>
 
 I've set up a clone of grubstreet, a usemod wiki, at
 L<http://the.earth.li/~kake/cgi-bin/cgi-wiki/wiki.cgi> -- it's not yet
-feature complete, and it uses a custom formatter module based on
-L<CGI::Wiki::Formatter::Default>, but other than the formatter (which
-will be released if/when my latest patches go into L<Text::WikiFormat>
-:) ) it's pure CGI::Wiki. Code is at
+feature complete, but it's pure CGI::Wiki, using the new
+L<CGI::Wiki::Formatter::UseMod> formatter. Code is at
 L<http://the.earth.li/~kake/code/cgi-wiki-usemod-emulator/>
 
 =head1 GRATUITOUS PLUG
 
-I'm only obsessed with Wikis because of the Open-Source Guide to
-London -- http://grault.net/grubstreet/
+I'm only obsessed with Wikis because of grubstreet, the Open Community
+Guide to London -- L<http://grault.net/grubstreet/>
 
 =cut
 

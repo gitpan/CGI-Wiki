@@ -3,7 +3,7 @@ NOTES FOR UPGRADERS:
   The database schema changed between versions 0.14 and 0.15, and again
   between versions 0.16 and 0.20 - see the 'Changes' file for details.
   This is really kinda important, please do check this out if you're
-  upgrading this module from a version prior to 0.14, or your code will
+  upgrading this module from a version prior to 0.20, or your code will
   die when it tries to use any existing databases.
 
 HOW TO INSTALL THIS:
@@ -57,7 +57,26 @@ HOW TO INSTALL THIS:
 POST INSTALL:
 
   You'll want to run one or all of the bin/user-setup-* scripts to set
-  up the database tables.
+  up the database tables:
+
+    user-setup-mysql.pl
+    user-setup-postgres.pl
+    user-setup-sqlite.pl
+
+  The three scripts above will set up your initial database tables. If
+  you are upgrading from an earlier version of CGI::Wiki, and there has
+  been no change to the database schema in the newer releases, they
+  will do nothing. If there has been a change to the schema, they will
+  leave your existing data alone but update the table schema.
+
+    user-setup-mysql-dbixfts.pl
+
+  The final script will, if used, set up DBIx::FullTextSearch indexes and
+  attempt to index any existing data.  Because of this, it must be run *after*
+  user-setup-mysql.pl
+
+  Note that installing CGI::Wiki does *not* install these utility scripts
+  for you.
 
 TESTING NOTES:
 
@@ -88,3 +107,35 @@ MySQL notes:
   wiki@localhost identified by 'wiki'" will create a suitable user and
   give it password access to, and all required privileges on the test
   database.
+
+PREREQUISITES:
+
+  The following modules *must* be installed before you try to build this.
+
+    * Text::WikiFormat (version 0.45 or later)
+    * HTML::PullParser
+    * Digest::MD5
+    * Test::More
+    * Test::Warn
+    * Test::MockObject (version 0.07 or later)
+    * Class::Delegation
+    * Time::Piece
+    * DBI
+
+  You will also need the relevant DBD database driver module for whichever
+  storage backend you plan to use, for example one of:
+
+    * DBD::mysql
+    * DBD::Pg
+    * DBD::SQLite (version 0.21 or later)
+
+  In addition, if you want to use the DBIx::FullTextSearch backend, you will
+  need
+
+    * DBIx::FullTextSearch (version 0.71 or later)
+    * Lingua::Stem
+
+  And finally, the Postgres and SQLite backends require the following for
+  testing purposes:
+
+    * Hook::LexWrap
