@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.35';
+$VERSION = '0.36';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -193,6 +193,10 @@ Registers the plugin with the wiki as one that needs to be informed
 when we write a node. Calls the plugin class's C<on_register> method,
 which should be used to check tables are set up etc.
 
+If the plugin C<isa> L<CGI::Wiki::Plugin>, calls the methods set up by
+that parent class to let it know about the backend store, search and
+formatter objects.
+
 =cut
 
 sub register_plugin {
@@ -201,6 +205,11 @@ sub register_plugin {
     croak "no plugin supplied" unless $plugin;
     if ( $plugin->can( "on_register" ) ) {
         $plugin->on_register;
+    }
+    if ( $plugin->isa( "CGI::Wiki::Plugin" ) ) {
+        $plugin->datastore( $self->store      );
+        $plugin->indexer(   $self->search_obj );
+        $plugin->formatter( $self->formatter  );
     }
     push @{ $self->{_registered_plugins} }, $plugin;
 }

@@ -35,11 +35,33 @@ metadata type:
       metadata_type  => "category",
       metadata_value => "Hammersmith" );
 
-For anything more complicated you will need to write a plugin. 
+For anything more complicated you will need to write a plugin.
+
+=head1 PLUGIN BASE CLASS
+
+Plugins should inherit from C<CGI::Wiki::Plugin>. This base class
+provides the following methods to give access to a C<CGI::Wiki>
+object's backends:
+
+=over 4
+
+=item * C<datastore> - returns the store object
+
+=item * C<indexer> - returns the search object
+
+=item * C<formatter> - returns the formatter object
+
+=back
+
+If you want these methods to return anything useful then call
+
+  $wiki->register_plugin( plugin => $plugin);
+
+before calling say
+
+  my %node_data = $plugin->datastore->retrieve_node( "Foo" );
 
 =head1 CALLING API
-
-B<THIS IS NOT YET IMPLEMENTED.>
 
   my $plugin = CGI::Wiki::Plugin::Foo->new( ...any required args... );
   $wiki->register_plugin( plugin => $plugin );
@@ -116,8 +138,6 @@ Check that any tables you require are set up, and set them up if not.
 =over 4
 
 =item B<post_write>
-
-B<THIS IS NOT YET IMPLEMENTED.>
 
 This will be called every time a node is written, with the arguments like so:
 

@@ -1,3 +1,6 @@
+0.36    9 May 2003
+        Added CGI::Wiki::Plugin as a base class for plugins to inherit from.
+
 0.35    5 May 2003
         Fixed bug in CGI::Wiki::Store::SQLite introduced with new calling
           syntax in version shipped with 0.34.
