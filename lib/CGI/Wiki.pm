@@ -3,9 +3,8 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.47';
+$VERSION = '0.48';
 
-use CGI ":standard";
 use Carp qw(croak carp);
 use Digest::MD5 "md5_hex";
 
@@ -601,7 +600,9 @@ sub write_node {
     my $formatter = $self->{_formatter};
     my @links_to;
     if ( $formatter->can( "find_internal_links" ) ) {
-        my @all_links_to = $formatter->find_internal_links( $content );
+        # Supply $metadata to formatter in case it's needed to alter the
+        # behaviour of the formatter, eg for CGI::Wiki::Formatter::Multiple.
+        my @all_links_to = $formatter->find_internal_links($content,$metadata);
         my %unique = map { $_ => 1 } @all_links_to;
         @links_to = keys %unique;
     }
@@ -626,18 +627,21 @@ sub write_node {
 
 =item B<format>
 
-  my $cooked = $wiki->format($raw);
+  my $cooked = $wiki->format($raw, $metadata);
 
-Passed straight through to your chosen formatter object.
+Passed straight through to your chosen formatter object. You do not
+I<have> to supply the C<$metadata> hashref, but if your formatter
+allows node metadata to affect the rendering of the node then you
+will want to.
 
 =cut
 
 sub format {
-    my ( $self, $raw ) = @_;
+    my ( $self, $raw, $metadata ) = @_;
     my $formatter = $self->{_formatter};
     # Add on $self to the call so the formatter can access things like whether
     # a linked-to node exists, etc.
-    return $formatter->format( $raw, $self );
+    return $formatter->format( $raw, $self, $metadata );
 }
 
 =item B<store>
@@ -776,6 +780,10 @@ Other ways to implement Wikis in Perl include:
 
 Kake Pugh (kake@earth.li).
 
+=head1 SUPPORT
+
+Questions, feature requests and bug reports should go to cgi-wiki-dev@earth.li
+
 =head1 COPYRIGHT
 
      Copyright (C) 2002-2003 Kake Pugh.  All Rights Reserved.
@@ -785,13 +793,13 @@ under the same terms as Perl itself.
 
 =head1 FEEDBACK
 
-Please send me mail and tell me what you think of this.  It's my first
-CPAN module, so stuff probably sucks.  Tell me what sucks, send me
-patches, send me tests.  Or if it doesn't suck, tell me that too.  I
-love getting mail, even if all it says is "I used your thing and I
-like it", or "I didn't use your thing because of X".
+Please send me mail and tell me what you think of this, particularly
+if something is broken or confusing. I would much rather fix it than
+not know. I love getting mail, even if all it says is "I used your
+thing and I like it", or "I didn't use your thing because of X".
 
-blair christensen, Clint Moore and Max Maischein won the beer.
+You could also subscribe to the dev list at
+  http://www.earth.li/cgi-bin/mailman/listinfo/cgi-wiki-dev
 
 =head1 CREDITS
 

@@ -1,3 +1,10 @@
+0.48    22 September 2003
+        Couple of small changes so I can write formatters that allow node
+          metadata to affect the rendering of the node.
+        A rewrite and renaming of the CGI::Wiki distribution is on the
+          cards - subscribe to cgi-wiki-dev if you're interested:
+          http://www.earth.li/cgi-bin/mailman/listinfo/cgi-wiki-dev
+
 0.47    29 August 2003
         Added metadata_was and metadata_wasnt parameters to list_recent_changes
 
