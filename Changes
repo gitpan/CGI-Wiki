@@ -1,3 +1,9 @@
+0.35    5 May 2003
+        Fixed bug in CGI::Wiki::Store::SQLite introduced with new calling
+          syntax in version shipped with 0.34.
+        Very basic start at plugin support as described in Extending.pod -
+          see 'perldoc CGI::Wiki' for details.
+
 0.34    5 May 2003
         Moving towards adding proper plugin support - the proposed API is
           in Extending.pod, please take a look and send comments.

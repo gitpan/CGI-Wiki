@@ -290,14 +290,18 @@ sub write_node_after_locking {
   $store->write_node_post_locking( node     => $node,
                                    content  => $content,
                                    links_to => \@links_to,
-                                   metadata => \%metadata  )
+                                   metadata => \%metadata,
+                                   plugins  => \@plugins   )
       or handle_error();
 
-Writes the specified content into the specified node. Making sure that
-locking/unlocking/transactions happen is left up to you (or your
-chosen subclass). This method shouldn't really be used directly as it
-might overwrite someone else's changes. Croaks on error but otherwise
-returns true.
+Writes the specified content into the specified node, then calls
+C<post_write> on all supplied plugins, with arguments C<node>,
+C<version>, C<content>, C<metadata>.
+
+Making sure that locking/unlocking/transactions happen is left up to
+you (or your chosen subclass). This method shouldn't really be used
+directly as it might overwrite someone else's changes. Croaks on error
+but otherwise returns true.
 
 Supplying a ref to an array of nodes that this ones links to is
 optional, but if you do supply it then this node will be returned when
@@ -425,6 +429,17 @@ sub write_node_post_locking {
                           )
                     . ")";
 	    $dbh->do($sql) or croak $dbh->errstr;
+	}
+    }
+
+    # Finally call post_write on any plugins.
+    my @plugins = @{ $args{plugins} || [ ] };
+    foreach my $plugin (@plugins) {
+        if ( $plugin->can( "post_write" ) ) {
+            $plugin->post_write( node     => $node,
+				 version  => $version,
+				 content  => $content,
+				 metadata => $metadata_ref );
 	}
     }
 

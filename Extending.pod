@@ -53,7 +53,7 @@ B<THIS IS NOT YET IMPLEMENTED.>
 
 or
 
-  my $plugin = OpenGuides::London::Undergound->new;
+  my $plugin = OpenGuides::London::Underground->new;
   $wiki->register_plugin( plugin => $plugin );
   $wiki->write_node( "Hammersmith Station", "a station", $checksum,
                      { tube_data => [
@@ -124,7 +124,6 @@ This will be called every time a node is written, with the arguments like so:
   $plugin->post_write( node     => $node_name,
                        version  => $version_number,
                        content  => $content,
-                       checksum => $checksum,
                        metadata => \%user_defined_metadata );
 
 This will happen after the node data is all written, but before any
@@ -148,7 +147,6 @@ This will be called every time a node is read, with the arguments like so:
   $plugin->post_read( node     => $node_name,
                       version  => $version_number,
                       content  => $content,
-                      checksum => $checksum,
                       metadata => \%user_defined_metadata );
 
 It cannot affect the data returned to the caller. It should be used for its

@@ -52,3 +52,4 @@ t/023_cgi_wiki_store_pg.t
 t/024_cgi_wiki_store_sqlite.t
 t/031_formatting.t
 t/032_formatter_default.t
+t/041_plugins.t

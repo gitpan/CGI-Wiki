@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 13;
+use Test::More tests => 15;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig;
 
@@ -35,10 +35,15 @@ foreach my $dbtype (qw( MySQL Pg SQLite )) {
 }
 
 SKIP: {
-    skip "SQLite backend not configured", 1
+    skip "SQLite backend not configured", 3
         unless $CGI::Wiki::TestConfig::config{SQLite};
 
     my @mistakes = <HASH*>;
-    is( scalar @mistakes, 0, "CGI::Wiki::Setup::SQLite doesn't create erroneous files when called with hashref" );
+    is( scalar @mistakes, 0, "CGI::Wiki::Setup::SQLite doesn't create erroneous files called things like 'HASH(0x80fd394)'" );
 
+    @mistakes = <ARRAY*>;
+    is( scalar @mistakes, 0, "CGI::Wiki::Setup::SQLite doesn't create erroneous files called things like 'ARRAY(0x83563fc)'" );
+
+    @mistakes = <4*>;
+    is( scalar @mistakes, 0, "CGI::Wiki::Setup::SQLite doesn't create erroneous files called '4'" );
 }

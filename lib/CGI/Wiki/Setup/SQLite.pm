@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::SQLite;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use DBI;
 use Carp;
@@ -153,12 +153,14 @@ sub cleardb {
 }
 
 sub _get_args {
+    my @args;
     if ( ref $_[0] ) {
         my %hash = %{$_[0]};
-        return @hash{ qw( dbname ) };
+        @args = @hash{ qw( dbname ) };
     } else {
-        return @_;
+        @args = @_;
     }
+    return $args[0];
 }
 
 =back

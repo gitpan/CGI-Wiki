@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.34';
+$VERSION = '0.35';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -178,7 +178,45 @@ sub _init {
         $self->{_formatter} = CGI::Wiki::Formatter::Default->new( %config );
     }
 
+    # Make a place to store plugins.
+    $self->{_registered_plugins} = [ ];
+
     return $self;
+}
+
+=item B<register_plugin>
+
+  my $plugin = CGI::Wiki::Plugin::Foo->new;
+  $wiki->register_plugin( plugin => $plugin );
+
+Registers the plugin with the wiki as one that needs to be informed
+when we write a node. Calls the plugin class's C<on_register> method,
+which should be used to check tables are set up etc.
+
+=cut
+
+sub register_plugin {
+    my ($self, %args) = @_;
+    my $plugin = $args{plugin} || "";
+    croak "no plugin supplied" unless $plugin;
+    if ( $plugin->can( "on_register" ) ) {
+        $plugin->on_register;
+    }
+    push @{ $self->{_registered_plugins} }, $plugin;
+}
+
+=item B<get_registered_plugins>
+
+  my @plugins = $wiki->get_registered_plugins;
+
+Returns an array of plugin objects.
+
+=cut
+
+sub get_registered_plugins {
+    my $self = shift;
+    my $ref = $self->{_registered_plugins};
+    return wantarray ? @$ref : $ref;
 }
 
 =item B<write_node>
@@ -191,9 +229,11 @@ sub _init {
   }
 
 Writes the specified content into the specified node in the backend
-storage, and indexes/reindexes the node in the search indexes, if a
-search is set up. Note that you can blank out a node without deleting
-it by passing the empty string as $content, if you want to.
+storage; and indexes/reindexes the node in the search indexes (if a
+search is set up); calls C<post_write> on any registered plugins.
+
+Note that you can blank out a node without deleting it by passing the
+empty string as $content, if you want to.
 
 If you expect the node to already exist, you must supply a checksum,
 and the node is write-locked until either your checksum has been
@@ -248,9 +288,12 @@ sub write_node {
 		 checksum => $checksum,
                  metadata => $metadata );
     $data{links_to} = \@links_to if scalar @links_to;
+    my @plugins = $self->get_registered_plugins;
+    $data{plugins} = \@plugins if scalar @plugins;
 
     my $store = $self->store;
     $store->check_and_write_node( %data ) or return 0;
+
     my $search = $self->{_search};
     if ($search and $content) {
         $search->index_node($node, $content);
