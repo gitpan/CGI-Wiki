@@ -6,19 +6,13 @@ DESCRIPTION
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
-NOTE WHEN UPGRADING FROM PRE-0.24 VERSIONS
-
-There was a small interface change to list_recent_changes between
-versions 0.23 and 0.24 - see the 'Changes' file for details.
-
-IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
-
-The database schema changed between versions 0.14 and 0.15, and again
-between versions 0.16 and 0.20 - see the 'Changes' file for details. 
-This is really kinda important, please do check this out or your code
-will die when it tries to use any existing databases.
-
 SIGNIFICANT RECENT CHANGES
+
+0.33    3 May 2003
+        Added ->fuzzy_title_match method to the Search::InvertedIndex backend
+          (CGI::Wiki::Search::SII).  You will need to re-index all existing
+          nodes in your wiki in order to take advantage of this (see the
+          Changes file for how).
 
 0.30    22 April 2003
         Added support for supplying 'host' parameter when connecting to
@@ -28,13 +22,6 @@ SIGNIFICANT RECENT CHANGES
         Added ->reinitialise_stores method to CGI::Wiki::TestConfig::Utilities
           to make it easier for plugins and so forth to make sure they have
           nice virginal test stores before they start running their tests.
-
-0.25    29 March 2003
-        list_recent_changes can now filter on a single metadata criterion.
-
-0.24    29 March 2003
-        list_recent_changes now returns any metadata attached to the node
-          as well - 'perldoc CGI::Wiki::Store::Database' for details.
 
 SYNOPSIS
 

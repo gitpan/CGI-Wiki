@@ -6,11 +6,11 @@ use Carp "croak";
 
 use vars qw( @ISA $VERSION );
 
-$VERSION = 0.05;
+$VERSION = 0.06;
 
 =head1 NAME
 
-CGI::Wiki::Search::SII - Search::InvertedIndex search plugin for CGI::Wiki
+CGI::Wiki::Search::SII - Search::InvertedIndex plugin for CGI::Wiki
 
 =head1 SYNOPSIS
 
@@ -28,6 +28,8 @@ Provides search-related methods for CGI::Wiki
 
 =item B<new>
 
+  # EITHER
+
   my $indexdb = Search::InvertedIndex::DB::Mysql->new(
                    -db_name    => $dbname,
                    -username   => $dbuser,
@@ -35,6 +37,15 @@ Provides search-related methods for CGI::Wiki
 		   -hostname   => '',
                    -table_name => 'siindex',
                    -lock_mode  => 'EX' );
+
+  # OR
+
+  my $indexdb = Search::InvertedIndex::DB::DB_File_SplitHash->new(
+                   -map_name  => "/home/wiki/indexes.db",
+                   -lock_mode => "EX" );
+
+  # THEN
+
   my $search = CGI::Wiki::Search::SII->new( indexdb => $indexdb );
 
 Takes only one parameter, which is mandatory. C<indexdb> must be a
@@ -56,6 +67,7 @@ sub _init {
     my $map = Search::InvertedIndex->new( -database => $indexdb )
       or croak "Couldn't set up Search::InvertedIndex map";
     $map->add_group( -group => "nodes" );
+    $map->add_group( -group => "fuzzy_titles" );
 
     $self->{_map}  = $map;
 
@@ -119,6 +131,46 @@ sub search_nodes {
     return %results;
 }
 
+=item B<fuzzy_title_match>
+
+  $wiki->write_node( "King's Cross St Pancras", "A station." );
+  my %matches = $search->fuzzy_title_match( "Kings Cross St. Pancras" );
+
+Returns a (possibly empty) hash whose keys are the node names and
+whose values are the scores in some kind of relevance-scoring system I
+haven't entirely come up with yet.
+
+Note that even if an exact match is found, any other similar enough
+matches will also be returned. However, any exact match is guaranteed
+to have the highest relevance score.
+
+The matching is done against "canonicalised" forms of the search
+string and the node titles in the database: stripping vowels, repeated
+letters and non-word characters, and lowercasing.
+
+=cut
+
+sub fuzzy_title_match {
+    my ($self, $string) = @_;
+    my $canonical = $self->_canonicalise_title( $string );
+
+    my $leaf = Search::InvertedIndex::Query::Leaf->new(
+        -key   => $canonical,
+        -group => "fuzzy_titles" );
+
+    my $query = Search::InvertedIndex::Query->new( -leafs => [ $leaf ] );
+
+    my $result = $self->{_map}->search( -query => $query );
+
+    my $num_results = $result->number_of_index_entries || 0;
+    my %results;
+    for my $i ( 1 .. $num_results ) {
+        my ($index, $data) = $result->entry( -number => $i - 1 );
+	$results{$data} = $data eq $string ? 2 : 1;
+    }
+    return %results;
+}
+
 =item B<index_node>
 
   $search->index_node($node);
@@ -133,6 +185,7 @@ sub index_node {
     croak "Must supply a node name" unless $node;
     croak "Must supply node content" unless defined $content;
 
+    # Index the individual words in the node content and title.
     my @keys = grep { length > 1                 # ignore single characters
                       and ! /^\W*$/ }            # and things composed entirely
                                                  #   of non-word characters
@@ -149,6 +202,27 @@ sub index_node {
         -keys => { map { $_ => 1 } @keys }
     );
     $self->{_map}->update( -update => $update );
+
+    # Index a canonicalised form of the title for fuzzy searches.
+    my $canonical = $self->_canonicalise_title( $node );
+
+    $update = Search::InvertedIndex::Update->new(
+        -group => "fuzzy_titles",
+        -index => $node . "_fuzzy_title",
+        -data  => $node,
+        -keys  => { $canonical => 1 }
+    );
+    $self->{_map}->update( -update => $update );
+}
+
+sub _canonicalise_title {
+    my ($self, $title) = @_;
+    return "" unless $title;
+    my $canonical = lc($title);
+    $canonical =~ s/\W//g;         # remove non-word characters
+    $canonical =~ s/[aeiouy]//g;   # remove vowels and 'y'
+    $canonical =~ s/(\w)\1+/$1/eg; # collapse doubled (or tripled, etc) letters
+    return $canonical;
 }
 
 =item B<delete_node>

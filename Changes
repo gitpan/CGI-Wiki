@@ -1,3 +1,27 @@
+0.33    3 May 2003
+        Added ->fuzzy_title_match method to the Search::InvertedIndex backend
+          (CGI::Wiki::Search::SII).  You will need to re-index all existing
+          nodes in your wiki in order to take advantage of this.  Take your
+          wiki offline and do something like
+
+          my $wiki = CGI::Wiki->new( %conf );
+          # (Where %conf is exactly as you would set this up for your actual
+          #  Wiki application, including your store, search and formatter
+          #  options exactly as you use them live.)
+          my @nodes = $wiki->list_all_nodes;
+          foreach my $node ( @nodes ) {
+            my %node_data = $wiki->retrieve_node( $node );
+            $wiki->write_node( $node,
+                               $node_data{content}, 
+                               $node_data{checksum},
+                               $node_data{metadata}
+            );
+            print "Reindexed $node\n";
+          }
+
+        to refresh all the nodes in your database.  Note that for wikis
+        of more than a couple of nodes, this can take quite some time.
+
 0.32    2 May 2003
         Fixed bug with write_node dying when using Search::InvertedIndex
           and writing node with blank content (thanks to Bob Walker for

@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.32';
+$VERSION = '0.33';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -15,7 +15,7 @@ use Class::Delegation
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
-    send => ['search_nodes', 'supports_phrase_searches'],
+    send => ['search_nodes', 'supports_phrase_searches', 'fuzzy_title_match'],
     to   => '_search',
     ;
 
@@ -28,6 +28,13 @@ CGI::Wiki - A toolkit for building Wikis.
 Helps you develop Wikis quickly by taking care of the boring bits for
 you. The aim is to allow different types of backend storage and search
 without you having to worry about the details.
+
+=head1 NOTE FOR PEOPLE USING THE Search::InvertedIndex BACKEND
+
+Version 0.33 adds the capability for fuzzy title matching to
+L<CGI::Wiki::Search::SII>, but you will need to re-index all existing
+nodes in your wiki in order to take advantage of this (see the Changes
+file for how).
 
 =head1 NOTE FOR PEOPLE USING POSTGRES
 
@@ -323,6 +330,8 @@ backend, if any)
 See the docs for your chosen search backend to see how these work.
 
 =over 4
+
+=item * fuzzy_title_match (only works with L<CGI::Wiki::Search::SII>)
 
 =item * search_nodes
 
