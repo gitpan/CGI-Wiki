@@ -1,6 +1,5 @@
 use Test::More tests => 1;
 use CGI::Wiki::TestConfig;
-use CGI::Wiki::Setup::MySQL;
 use DBI;
 
 my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
@@ -8,10 +7,6 @@ my $testing = $config{dbname};
 
 if ($testing) {
     my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
-
-    # Clear out the test database, then set up tables afresh.
-    CGI::Wiki::Setup::MySQL::cleardb($dbname, $dbuser, $dbpass);
-    CGI::Wiki::Setup::MySQL::setup($dbname, $dbuser, $dbpass);
 
     # Put in the test data.
     my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,

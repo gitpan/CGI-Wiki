@@ -1,6 +1,5 @@
 use Test::More tests => 1;
 use CGI::Wiki::TestConfig;
-use CGI::Wiki::Setup::SQLite;
 use DBI;
 
 my %config = %{$CGI::Wiki::TestConfig::config{SQLite}};
@@ -8,10 +7,6 @@ my $testing = $config{dbname};
 
 if ($testing) {
     my $dbname = $config{dbname};
-
-    # Clear out the test database, then set up tables afresh.
-    CGI::Wiki::Setup::SQLite::cleardb($dbname);
-    CGI::Wiki::Setup::SQLite::setup($dbname);
 
     # Put in the test data.
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "",

@@ -5,11 +5,11 @@ use strict;
 use CGI::Wiki::TestConfig;
 
 use vars qw( $num_stores $num_combinations $VERSION );
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 =head1 NAME
 
-CGI::Wiki::TestConfig::Utilities - Get information about backends you can use for testing CGI::Wiki things.
+CGI::Wiki::TestConfig::Utilities - Utilities for testing CGI::Wiki things.
 
 =head1 DESCRIPTION
 
@@ -20,6 +20,14 @@ convenient access to this information, so you can easily write and run
 tests for your own CGI::Wiki plugins.
 
 =head1 SYNOPSIS
+
+  # Reinitialise every configured storage backend.
+  use strict;
+  use CGI::Wiki;
+  use CGI::Wiki::TestConfig::Utilities;
+
+  CGI::Wiki::TestConfig::Utilities->reinitialise_stores;
+
 
   # Run all our tests for every possible storage backend.
 
@@ -158,6 +166,42 @@ $num_combinations = scalar @combinations;
 =head1 METHODS
 
 =over 4
+
+=item B<reinitialise_stores>
+
+  # Reinitialise every configured storage backend.
+  use strict;
+  use CGI::Wiki;
+  use CGI::Wiki::TestConfig::Utilities;
+
+  CGI::Wiki::TestConfig::Utilities->reinitialise_stores;
+
+Clears out all of the configured storage backends.
+
+=cut
+
+sub reinitialise_stores {
+    my $class = shift;
+    my %stores = $class->stores;
+
+    my ($store_name, $store);
+    while ( ($store_name, $store) = each %stores ) {
+        next unless $store;
+
+        my $dbname = $store->dbname;
+        my $dbuser = $store->dbuser;
+        my $dbpass = $store->dbpass;
+
+        # Clear out the test database, then set up tables afresh.
+        my $setup_class = "CGI::Wiki::Setup::$store_name";
+        eval "require $setup_class";
+        {
+          no strict "refs";
+          &{"$setup_class\:\:cleardb"}($dbname, $dbuser, $dbpass);
+          &{"$setup_class\:\:setup"}($dbname, $dbuser, $dbpass);
+        }
+    }
+}
 
 =item B<stores>
 

@@ -20,6 +20,11 @@ will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
 
+0.27    5 April 2003
+        Added ->reinitialise_stores method to CGI::Wiki::TestConfig::Utilities
+          to make it easier for plugins and so forth to make sure they have
+          nice virginal test stores before they start running their tests.
+
 0.25    29 March 2003
         list_recent_changes can now filter on a single metadata criterion.
 
