@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.16';
+$VERSION = '0.20';
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -11,7 +11,7 @@ use Digest::MD5 "md5_hex";
 use Class::Delegation
     send => ['retrieve_node', 'retrieve_node_and_checksum', 'verify_checksum',
              'list_all_nodes', 'list_recent_changes', 'node_exists',
-             'list_backlinks'],
+             'list_backlinks', 'list_nodes_by_metadata'],
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
@@ -29,12 +29,12 @@ Helps you develop Wikis quickly by taking care of the boring bits for
 you. The aim is to allow different types of backend storage and search
 without you having to worry about the details.
 
-=head1 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.15 VERSIONS
+=head1 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
 
-The database schema changed between versions 0.14 and 0.15 - see the
-'Changes' file for details. This is really kinda important, please do
-check this out or your code will die when it tries to use any existing
-databases.
+The database schema changed between versions 0.14 and 0.15, and again
+between versions 0.16 and 0.20 - see the 'Changes' file for details. 
+This is really kinda important, please do check this out or your code
+will die when it tries to use any existing databases.
 
 =head1 NOTE WHEN UPGRADING FROM PRE-0.10 VERSIONS
 
@@ -181,7 +181,7 @@ sub _init {
 
 =item B<write_node>
 
-  my $written = $wiki->write_node($node, $content, $checksum);
+  my $written = $wiki->write_node($node, $content, $checksum, \%metadata);
   if ($written) {
       display_node($node);
   } else {
@@ -199,13 +199,19 @@ proved old, or your checksum has been accepted and your change
 committed.  If no checksum is supplied, and the node is found to
 already exist and be nonempty, a conflict will be raised.
 
-All parameters are mandatory.  Returns 1 on success, 0 on conflict,
-croaks on error.
+The first three parameters are mandatory. The metadata hashref is
+optional, but if it is supplied then each of its keys must be either a
+scalar or a reference to an array of scalars.
+
+(If you want to supply metadata but have no checksum (for a
+newly-created node), supply a checksum of C<undef>.)
+
+Returns 1 on success, 0 on conflict, croaks on error.
 
 =cut
 
 sub write_node {
-    my ($self, $node, $content, $checksum) = @_;
+    my ($self, $node, $content, $checksum, $metadata) = @_;
     croak "No valid node name supplied for writing" unless $node;
     croak "No content parameter supplied for writing" unless defined $content;
     $checksum = md5_hex("") unless defined $checksum;
@@ -220,7 +226,8 @@ sub write_node {
 
     my %data = ( node     => $node,
 		 content  => $content,
-		 checksum => $checksum );
+		 checksum => $checksum,
+                 metadata => $metadata );
     $data{links_to} = \@links_to if scalar @links_to;
 
     my $store = $self->store;
@@ -291,6 +298,8 @@ backend, if any)
 =item * list_all_nodes
 
 =item * list_backlinks
+
+=item * list_nodes_by_metadata
 
 =item * list_recent_changes
 

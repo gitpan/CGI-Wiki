@@ -8,10 +8,10 @@ $timestamp_fmt = "%Y-%m-%d %H:%M:%S";
 use DBI;
 use Time::Piece;
 use Time::Seconds;
-use Carp qw(croak);
+use Carp qw( carp croak );
 use Digest::MD5 qw( md5_hex );
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 =head1 NAME
 
@@ -58,7 +58,6 @@ sub _init {
     }
     $self->{_dbuser} = $args{dbuser} || "";
     $self->{_dbpass} = $args{dbpass} || "";
-    $self->{_checksum_method} = \&md5_hex;
 
     # Connect to database and store the database handle.
     my ($dbname, $dbuser, $dbpass) = @$self{qw(_dbname _dbuser _dbpass)};
@@ -81,24 +80,84 @@ sub _init {
   my %node = $store->retrieve_node("HomePage");
   print "Current Version: " . $node{version};
 
+  # Maybe we stored some metadata too.
+  my $categories = $node{metadata}{category};
+  print "Categories: " . join(", ", @$categories);
+  print "Postcode: $node{metadata}{postcode}[0]";
+
   # Or get an earlier version:
   my %node = $store->retrieve_node(name    => "HomePage",
 			             version => 2 );
   print $node{content};
 
+
 In scalar context, returns the current (raw Wiki language) contents of
 the specified node. In list context, returns a hash containing the
-contents of the node plus metadata: last_modified, version, checksum.
+contents of the node plus additional data:
+
+=over 4
+
+=item B<last_modified>
+
+=item B<version>
+
+=item B<checksum>
+
+=item B<metadata> - a reference to a hash containing any caller-supplied
+metadata sent along the last time the node was written
 
 The node parameter is mandatory. The version parameter is optional and
 defaults to the newest version. If the node hasn't been created yet,
 it is considered to exist but be empty (this behaviour might change).
+
+B<Note> on metadata - each hash value is an array ref, even if that
+type of metadata only has one value.
 
 =cut
 
 sub retrieve_node {
     my $self = shift;
     my %args = scalar @_ == 1 ? ( name => $_[0] ) : @_;
+    # Note _retrieve_node_data is sensitive to calling context.
+    return $self->_retrieve_node_data( %args ) unless wantarray;
+    my %data = $self->_retrieve_node_data( %args );
+    $data{checksum} = $self->_checksum(%data);
+    return %data;
+}
+
+# Returns hash or scalar depending on calling context.
+sub _retrieve_node_data {
+    my ($self, %args) = @_;
+    my %data = $self->_retrieve_node_content( %args );
+    return $data{content} unless wantarray;
+
+    # If we want additional data then get it.  Note that $data{version}
+    # will already have been set by C<_retrieve_node_content>, if it wasn't
+    # specified in the call.
+    my $dbh = $self->dbh;
+    my $sql = "SELECT metadata_type, metadata_value FROM metadata WHERE "
+         . "node=" . $dbh->quote($args{name}) . " AND "
+         . "version=" . $dbh->quote($data{version});
+    my $sth = $dbh->prepare($sql);
+    $sth->execute or croak $dbh->errstr;
+    my %metadata;
+    while ( my ($type, $val) = $sth->fetchrow_array ) {
+        if ( defined $metadata{$type} ) {
+	    push @{$metadata{$type}}, $val;
+	} else {
+            $metadata{$type} = [ $val ];
+        }
+    }
+    $data{metadata} = \%metadata;
+    return %data;
+}
+
+# $store->_retrieve_node_content( name    => $node_name,
+#                                 version => $node_version );
+# Params: 'name' is compulsory, 'version' is optional and defaults to latest.
+# Returns a hash of data for C<retrieve_node> - content, version, last modified
+sub _retrieve_node_content {
+    my ($self, %args) = @_;
     croak "No valid node name supplied" unless $args{name};
     my $dbh = $self->dbh;
     my $sql;
@@ -114,8 +173,18 @@ sub retrieve_node {
     @results = ("", 0, "") unless scalar @results;
     my %data;
     @data{ qw( content version last_modified ) } = @results;
-    $data{checksum} = md5_hex($data{content});
-    return wantarray ? %data : $data{content};
+    return %data;
+}
+
+sub _checksum {
+    my ($self, %node_data) = @_;
+    my $string = $node_data{content};
+    my %metadata = %{ $node_data{metadata} || {} };
+    foreach my $key ( sort keys %metadata ) {
+        $string .= "\0\0\0" . $key . "\0\0"
+                 . join("\0", sort @{$metadata{$key}} );
+    }
+    return md5_hex($string);
 }
 
 =item B<retrieve_node_and_checksum>
@@ -134,6 +203,7 @@ Use C<retrieve_node> in list context, instead.
 =cut
 
 sub retrieve_node_and_checksum {
+    carp "retrieve_node_and_checksum is deprecated; please use retrieve_node in list context, instead";
     my ($self, $node) = @_;
     my %data = $self->retrieve_node($node) or return ();
     return @data{ qw( content checksum ) };
@@ -175,8 +245,8 @@ can however be useful when previewing edits, for example.
 
 sub verify_checksum {
     my ($self, $node, $checksum) = @_;
-    my $content = $self->retrieve_node($node);
-    return ( $checksum eq md5_hex($content) );
+    my %node_data = $self->_retrieve_node_data( name => $node );
+    return ( $checksum eq $self->_checksum( %node_data ) );
 }
 
 =item B<list_backlinks>
@@ -204,7 +274,25 @@ sub list_backlinks {
 
 =item B<write_node_after_locking>
 
-  $store->write_node_after_locking($node, $content, \@links_to)
+Deprecated, use C<write_node_post_locking> instead. This is still here
+for now as a wrapper but it will go away soon.
+
+=cut
+
+sub write_node_after_locking {
+    carp "write_node_after_locking is deprecated; please use write_node_post_locking instead";
+    my ($self, $node, $content, $links_to_ref) = @_;
+    return $self->write_node_post_locking( node     => $node,
+                                           content  => $content,
+                                           links_to => $links_to_ref );
+}
+
+=item B<write_node_post_locking>
+
+  $store->write_node_post_locking( node     => $node,
+                                   content  => $content,
+                                   links_to => \@links_to,
+                                   metadata => \%metadata  )
       or handle_error();
 
 Writes the specified content into the specified node. Making sure that
@@ -219,10 +307,15 @@ calling C<list_backlinks> on the nodes in C<@links_to>. B<Note> that
 if you don't supply the ref then the store will assume that this node
 doesn't link to any others, and update itself accordingly.
 
+The metadata hashref is also optional, but if it is supplied then each
+of its keys must be either a scalar or a reference to an array of scalars.
+
 =cut
 
-sub write_node_after_locking {
-    my ($self, $node, $content, $links_to_ref) = @_;
+sub write_node_post_locking {
+    my ($self, %args) = @_;
+    my ($node, $content, $links_to_ref, $metadata_ref) =
+                                @args{ qw( node content links_to metadata) };
     my $dbh = $self->dbh;
 
     my $timestamp = $self->_get_timestamp();
@@ -271,6 +364,23 @@ sub write_node_after_locking {
         $sql = "INSERT INTO internal_links (link_from, link_to) VALUES ("
              . join(", ", map { $dbh->quote($_) } ( $node, $links_to ) ) . ")";
         $dbh->do($sql) or croak $dbh->errstr;
+    }
+
+    # And also store any metadata.  Note that any entries already in the
+    # metadata table refer to old versions, so we don't need to delete them.
+    my %metadata = %{ $metadata_ref || {} }; # default to no metadata
+    foreach my $type ( keys %metadata ) {
+        my $val = $metadata{$type};
+        my @values = ref $val ? @$val : ( $val );
+        my %unique = map { $_ => 1 } @values;
+        @values = keys %unique;
+        foreach my $value ( @values ) {
+            my $sql = "INSERT INTO metadata "
+                    . "(node, version, metadata_type, metadata_value) VALUES ("
+                   . join(", ", map { $dbh->quote($_) }
+                                    ( $node, $version, $type, $value ) ) . ")";
+	    $dbh->do($sql) or croak $dbh->errstr;
+	}
     }
 
     return 1;
@@ -406,6 +516,48 @@ sub list_all_nodes {
     return ( map { $_->[0] } (@$nodes) );
 }
 
+=item B<list_nodes_by_metadata>
+
+  # All nodes that Kake's watching.
+  my @nodes = $store->list_nodes_by_metadata(
+      metadata_type  => "watched_by",
+      metadata_value => "Kake"              );
+
+  # All pubs in Hammersmith.
+  my @pubs = $store->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value => "Pub"              );
+  my @hsm  = $store->list_nodes_by_metadata(
+      metadata_type  => "category",
+      metadata_value  => "Hammersmith"     );
+  my @results = my_l33t_method_for_ANDing_arrays( \@pubs, \@hsm );
+
+Returns a list containing the name of every node whose caller-supplied
+metadata matches the criteria given in the parameters.
+
+If you don't supply any criteria then you'll get an empty list.
+
+This is a really really really simple way of finding things; if you
+want to be more complicated then you'll need to call the method
+multiple times and combine the results yourself. Or write a plugin,
+when I get around to adding support for that.
+
+=cut
+
+sub list_nodes_by_metadata {
+    my ($self, %args) = @_;
+    my ( $type, $value ) = @args{ qw( metadata_type metadata_value ) };
+    return () unless $type;
+    my $dbh = $self->dbh;
+    my $sql = "SELECT node.name FROM node, metadata"
+            . " WHERE node.name=metadata.node"
+            . " AND node.version=metadata.version"
+            . " AND metadata.metadata_type = " . $dbh->quote($type)
+            . " AND metadata.metadata_value = " . $dbh->quote($value);
+    my $nodes = $dbh->selectall_arrayref($sql); 
+    return ( map { $_->[0] } (@$nodes) );
+}
+
 =item B<dbh>
 
   my $dbh = $store->dbh;
@@ -432,7 +584,7 @@ sub dbname {
     return $self->{_dbname};
 }
 
-=item B<dbh>
+=item B<dbuser>
 
   my $dbuser = $store->dbuser;
 

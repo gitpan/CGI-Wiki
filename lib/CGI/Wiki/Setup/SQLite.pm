@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::SQLite;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 use DBI;
 use Carp;
@@ -33,6 +33,14 @@ CREATE TABLE internal_links (
   link_from varchar(200) NOT NULL default '',
   link_to   varchar(200) NOT NULL default '',
   PRIMARY KEY (link_from, link_to)
+)
+",
+    metadata => "
+CREATE TABLE metadata (
+  node           varchar(200) NOT NULL DEFAULT '',
+  version        integer      NOT NULL default 0,
+  metadata_type  varchar(200) NOT NULL DEFAULT '',
+  metadata_value mediumtext   NOT NULL DEFAULT ''
 )
 "
 );

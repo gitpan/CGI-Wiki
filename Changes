@@ -1,3 +1,10 @@
+0.20    22 February 2003
+        Added simple (and intentionally naive) metadata support.  Note that
+          the database schema has changed (additional 'metadata' table), so
+          you will need to re-run the relevant database setup script again as
+          described below for upgrading to 0.15.
+        Much of this release was written on David Woolger's laptop; thanks :)
+
 0.16    5 February 2003
         Changed CGI::Wiki::Setup::Pg to use the 'timestamp' data type
           instead of 'datetime', since 'datetime' was deprecated and

@@ -3,7 +3,7 @@ package CGI::Wiki::Setup::Pg;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 use DBI;
 use Carp;
@@ -39,6 +39,15 @@ CREATE TABLE internal_links (
 )
 |, qq|
 CREATE UNIQUE INDEX internal_links_pkey ON internal_links (link_from, link_to)
+| ],
+
+    metadata => [ qq|
+CREATE TABLE metadata (
+  node           varchar(200) NOT NULL DEFAULT '',
+  version        integer      NOT NULL default 0,
+  metadata_type  varchar(200) NOT NULL DEFAULT '',
+  metadata_value text         NOT NULL DEFAULT ''
+)
 | ]
 
 );

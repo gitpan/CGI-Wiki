@@ -8,7 +8,7 @@ use CGI::Wiki::Store::Database;
 use Carp qw/carp croak/;
 
 @ISA = qw( CGI::Wiki::Store::Database );
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 =head1 NAME
 
@@ -52,26 +52,19 @@ sub new {
 =item B<check_and_write_node>
 
   $store->check_and_write_node( node     => $node,
-				content  => $content,
 				checksum => $checksum,
-                                links_to => \@links_to ) or return 0;
+                                %other_args );
 
-Locks the node, verifies the checksum and writes the content to the
-node, unlocks the node.  Returns 1 on success, 0 if checksum doesn't
-match, croaks on error.
-
-The C<links_to> parameter is optional, but if you do supply it then
-this node will be returned when calling C<list_backlinks> on the nodes
-in C<@links_to>. B<Note> that if you don't supply the ref then the store
-will assume that this node doesn't link to any others, and update
-itself accordingly.
+Locks the node, verifies the checksum, calls
+C<write_node_post_locking> with all supplied arguments, unlocks the
+node. Returns 1 on successful writing, 0 if checksum doesn't match,
+croaks on error.
 
 =cut
 
 sub check_and_write_node {
     my ($self, %args) = @_;
-    my ($node, $content, $checksum, $links_to) =
-                                     @args{qw(node content checksum links_to)};
+    my ($node, $checksum) = @args{qw( node checksum )};
 
     my $dbh = $self->{_dbh};
     $dbh->{AutoCommit} = 0;
@@ -80,7 +73,7 @@ sub check_and_write_node {
         $dbh->do("END TRANSACTION");
         $dbh->do("BEGIN TRANSACTION");
         $self->verify_checksum($node, $checksum) or return 0;
-        $self->write_node_after_locking($node, $content, $links_to);
+        $self->write_node_post_locking( %args );
     };
     if ($@) {
         my $error = $@;

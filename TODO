@@ -1,8 +1,7 @@
 
 - Stemming and phrase searches for the Search::InvertedIndex backends.
 
-- Allow storage of visitor-defined metadata for pages (categories, random
-  quotes for plugins a la grubstreet front page, etc).
+- Add plugin support - see my use.perl journal or the grubstreet archives.
 
 - Make the macro feature more powerful.  blair christensen pointed me
   at PhpWiki's "plugin" functionality, which looks very cool.

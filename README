@@ -6,16 +6,21 @@ DESCRIPTION
     you. The aim is to allow different types of backend storage and search
     without you having to worry about the details.
 
-IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.15 VERSIONS
-    The database schema changed between versions 0.14 and 0.15 - see the
-    'Changes' file for details. This is really kinda important, please do
-    check this out or your code will die when it tries to use any existing
-    databases.
+=head1 IMPORTANT NOTE WHEN UPGRADING FROM PRE-0.20 VERSIONS
+
+The database schema changed between versions 0.14 and 0.15, and again
+between versions 0.16 and 0.20 - see the 'Changes' file for details. 
+This is really kinda important, please do check this out or your code
+will die when it tries to use any existing databases.
 
 SIGNIFICANT RECENT CHANGES
 
+0.20    22 February 2003
+        Added simple metadata support.  Another database schema change;
+          see 'Changes' file.
+
 0.15    5 January 2003
-        Implemented backlinks.  Database schema change, see 'Changes' file.
+        Implemented backlinks.  Database schema change; see 'Changes' file.
 
 0.11    31 December 2002
         Changes suggested by blair christensen, to allow alternate formatters.
@@ -53,6 +58,12 @@ MAJOR METHODS
 
     write_node
           $wiki->write_node($node_name, $content, $checksum);
+          $wiki->write_node(
+              "Calthorpe Arms",
+              "A rather nice pub on Gray's Inn Road",
+              $checksum,
+              { category => [ "Pub", "Pub Food", "Bloomsbury" ] }
+          );
 
     format
           my $cooked = $wiki->format($raw);
@@ -65,6 +76,11 @@ MAJOR METHODS
 
     list_backlinks
           my @links_to_me = $wiki->list_backlinks($node_name);
+
+    list_nodes_by_metadata
+          my @pubs = $wiki->list_nodes_by_metadata(
+              metadata_type  => "category",
+              metadata_value => "Pub" );
 
     list_recent_changes
           my @last_week_edits  = $wiki->list_recent_changes( days => 7 );
@@ -82,6 +98,8 @@ MAJOR METHODS
           print "Current Version:  $node_data{version}\n";
           print "Current Checksum: $node_data{checksum}\n";
           print "Current Content:  $node_data{content}\n";
+          print "Categories:       "
+              . join(", ", @{$node_data{metadata}{category}}) . "\n";
 
     verify_checksum
           my $as_i_left_it = $wiki->verify_checksum( $node_name, $checksum );

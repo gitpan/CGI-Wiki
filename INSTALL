@@ -1,9 +1,10 @@
 NOTES FOR UPGRADERS:
 
-  The database schema changed between versions 0.14 and 0.15 - see the
-  'Changes' file for details.  This is really kinda important, please
-  do check this out if you're upgrading this module from a version prior
-  to 0.14, or your code will die when it tries to use any existing databases.
+  The database schema changed between versions 0.14 and 0.15, and again
+  between versions 0.16 and 0.20 - see the 'Changes' file for details.
+  This is really kinda important, please do check this out if you're
+  upgrading this module from a version prior to 0.14, or your code will
+  die when it tries to use any existing databases.
 
 HOW TO INSTALL THIS:
 
