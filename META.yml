@@ -1,11 +1,12 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         CGI-Wiki
-version:      0.50
+version:      0.51_01
 version_from: lib/CGI/Wiki.pm
 installdirs:  site
 requires:
     DBD::mysql:                    0
+    DBD::Pg:                       0
     DBD::SQLite:                   0.25
     DBIx::FullTextSearch:          0.71
     Digest::MD5:                   0
@@ -15,4 +16,4 @@ requires:
     Time::Piece:                   0
 
 distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.20
+generated_by: ExtUtils::MakeMaker version 6.21
