@@ -651,8 +651,12 @@ sub _find_recent_changes_by_criteria {
 	my $value  = $metadata_isnt->{$type};
         croak "metadata_isnt criterion must have one key and one value only"
           if ref $value;
-	push @where, "metadata.metadata_type=" . $dbh->quote($type);
-	push @where, "metadata.metadata_value!=" . $dbh->quote($value);
+        my @omit = $self->list_nodes_by_metadata(
+            metadata_type  => $type,
+            metadata_value => $value );
+        push @where, "node.name NOT IN ("
+                   . join(",", map { $dbh->quote($_) } @omit ) . ")"
+          if scalar @omit;
     }
 
     my $sql = "SELECT DISTINCT node.name, node.version, node.modified
@@ -661,6 +665,7 @@ sub _find_recent_changes_by_criteria {
             . ( scalar @where ? " WHERE " . join(" AND ",@where)
 			                     : "" )
             . " ORDER BY node.modified DESC";
+
     if ( $limit ) {
         croak "Bad argument $limit" unless $limit =~ /^\d+$/;
         $sql .= " LIMIT $limit";

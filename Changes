@@ -1,3 +1,7 @@
+0.44    10 July 2003
+        Fixed bug with metadata_isnt - it wasn't picking up nodes where
+          that metadata type wasn't set.
+
 0.43    10 July 2003
         Added metadata_isnt constraint to ->list_recent_changes.
 
