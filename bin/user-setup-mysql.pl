@@ -1,39 +1,74 @@
 #!/usr/bin/perl -w
 
 use strict;
-use DBI;
-use Carp;
+use Getopt::Long;
+use CGI::Wiki::Setup::MySQL;
 
-my ($dbname, $dbuser, $dbpass) = ("kakewiki", "wiki", "wiki");
+my ($dbname, $dbuser, $dbpass, $help);
+GetOptions("name=s" => \$dbname,
+           "user=s" => \$dbuser,
+           "pass=s" => \$dbpass,
+           "help"   => \$help,);
 
-my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,
-		       { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
-    or croak DBI::errstr;
+unless (defined($dbname)) {
+    print "You must supply a database name with the --name option\n";
+    print "further help can be found by typing 'perldoc $0'\n";
+    exit 1;
+}
 
-# Drop tables if they already exist.
-my $sql;
-$sql = "DROP TABLE IF EXISTS node, content";
-$dbh->do($sql) or croak $dbh->errstr;
+if ($help) {
+    print "Help can be found by typing 'perldoc $0'\n";
+    exit 0;
+}
 
-# Set up tables.
-$sql = "CREATE TABLE node (
-  name      varchar(200) NOT NULL DEFAULT '',
-  version   int(10) NOT NULL default 0,
-  text      mediumtext NOT NULL default '',
-  modified  datetime default NULL,
-  PRIMARY KEY (name)
-)";
-$dbh->do($sql) or croak $dbh->errstr;
+CGI::Wiki::Setup::MySQL::setup($dbname, $dbuser, $dbpass);
 
-$sql = "CREATE TABLE content (
-  name      varchar(200) NOT NULL default '',
-  version   int(10) NOT NULL default 0,
-  text      mediumtext NOT NULL default '',
-  modified  datetime default NULL,
-  comment   mediumtext NOT NULL default '',
-  PRIMARY KEY  (name, version)
-)";
-$dbh->do($sql) or croak $dbh->errstr;
+=head1 NAME
 
-# Clean up.
-$dbh->disconnect;
+user-setup-mysql - set up a MySQL storage backend for CGI::Wiki
+
+=head1 SYNOPSIS
+
+  user-setup-mysql --name mywiki \
+                   --user wiki  \
+                   --pass wiki  \
+
+=head1 DESCRIPTION
+
+Takes three arguments:
+
+=over 4
+
+=item name
+
+The database name.
+
+=item user
+
+The user that connects to the database. It must have permission
+to create and drop tables in the database.
+
+=item pass
+
+The user's database password.
+
+=back
+
+=head1 AUTHOR
+
+Kake Pugh (kake@earth.li).
+
+=head1 COPYRIGHT
+
+     Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+
+This code is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<CGI::Wiki>, L<CGI::Wiki::Setup::MySQL>
+
+=cut
+
+1;

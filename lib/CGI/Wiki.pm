@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 use CGI ":standard";
 use Carp qw(croak carp);
@@ -11,7 +11,8 @@ use Text::WikiFormat as => 'wikiformat';
 use HTML::PullParser;
 use Digest::MD5 "md5_hex";
 use Class::Delegation
-    send => ['retrieve_node', 'verify_checksum', 'list_all_nodes'],
+    send => ['retrieve_node', 'verify_checksum', 'list_all_nodes',
+	     'list_recent_changes'],
     to   => '_store',
     send => 'delete_node',
     to   => ['_store', '_search'],
@@ -21,7 +22,7 @@ use Class::Delegation
 
 =head1 NAME
 
-CGI::Wiki - Storage, retrieval, searching and formatting of Wiki pages
+CGI::Wiki - A toolkit for building Wikis.
 
 =head1 REQUIRES
 
@@ -309,6 +310,8 @@ backend, if any)
 
 =item * list_all_nodes
 
+=item * list_recent_changes
+
 =item * retrieve_node
 
 =item * verify_checksum
@@ -345,9 +348,16 @@ Other ways to implement Wikis in Perl include:
 
 =item * UseModWiki
 
-=head1 AUTHORS
+=head1 AUTHOR
 
 Kake Pugh (kake@earth.li).
+
+=head1 COPYRIGHT
+
+     Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+
+This module is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =head1 FEEDBACK
 
@@ -357,7 +367,7 @@ patches, send me tests.  Or if it doesn't suck, tell me that too.  I
 love getting mail, even if all it says is "I used your thing and I
 like it", or "I didn't use your thing because of X".
 
-I will buy beer or cider (one pint, litre, or similarly-sized bottle
+I will buy beer or cider (two pints, litres, or similarly-sized bottles
 of, not exchangeable for lager or other girly drinks, will probably
 need to be claimed in person in whichever city I'm in at the time) for
 the first three people to send me such mail.

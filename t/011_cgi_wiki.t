@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Test::More tests => 89;
+use Test::More tests => 104;
 use Test::Warn;
 use CGI::Wiki::TestConfig;
 
@@ -35,7 +35,7 @@ foreach my $configref (@tests) {
     SKIP: {
         skip "Store $storage_backend and search "
 	   . ( defined $search_backend ? $search_backend : "undef" )
-	   . " not configured for testing", 29 unless $testconfig{do};
+	   . " not configured for testing", 34 unless $testconfig{do};
 
         ##### Test failed creation.
         eval { CGI::Wiki->new( dbname => "thisdatabaseshouldnotexist",
@@ -185,5 +185,47 @@ foreach my $configref (@tests) {
         $wiki->write_node("Another Node",
                          'This node exists solely to contain the word "home".')
             or die "Couldn't cleanup";
+
+	##### Test recent_changes (must do this as the last in each batch
+        ##### of tests since some tests involve writing, and some configs
+        ##### re-use the same database (eg mysql-nosearch, mysql-dbixfts)
+        # The tests in this file will write to the following nodes:
+        #   Another Node, Everyone's Favourite Hobby, Node1
+        foreach my $node ("Node1", "Everyone's Favourite Hobby",
+			  "Another Node") { # note the order
+            my ($content, $cksum) = $wiki->retrieve_node_and_checksum($node);
+            $wiki->write_node($node, $content, $cksum);
+            my $slept = sleep(2);
+            warn "Slept for less than a second, 'right order' test may fail"
+              unless $slept >= 1;
+	}
+
+        my @nodes = $wiki->list_recent_changes( days => 1 );
+        my @nodenames = map { $_->{name} } @nodes;
+        my %unique = map { $_ => 1 } @nodenames;
+        is_deeply( [sort keys %unique],
+		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
+		   "recent_changes for last 1 day gets the right results" );
+
+        is( scalar @nodenames, 3,
+            "...only once per node however many times changed" );
+
+        is_deeply( \@nodenames,
+		   ["Another Node", "Everyone's Favourite Hobby", "Node1"],
+		   "...in the right order" ); # returns in reverse chron. order
+
+        my $time = time;
+	my $slept = sleep(2);
+	warn "Slept for less than a second, 'since' test may fail"
+	  unless $slept >= 1;
+        ($content, $checksum) = $wiki->retrieve_node_and_checksum("Node1");
+	$wiki->write_node("Node1", $content, $checksum);
+        @nodes = $wiki->list_recent_changes( since => $time );
+	@nodenames = map { $_->{name} } @nodes;
+        is_deeply( \@nodenames, ["Node1"],
+		   "recent_changes 'since' returns the right results" );
+        ok( $nodes[0]{last_modified},
+	    "...and a plausible (not undef or empty) last_modified timestamp");
+
     }
 }

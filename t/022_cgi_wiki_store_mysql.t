@@ -46,4 +46,5 @@ SKIP: {
     # Cleanup (not necessary, since this thread is about to die, but here
     # in case I forget and add some more tests at the end).
     $evil_store->_unlock_node("Home");
+
 }

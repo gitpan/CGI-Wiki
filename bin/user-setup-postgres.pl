@@ -1,41 +1,72 @@
 #!/usr/bin/perl -w
 
 use strict;
-use DBI;
-use Carp;
+use Getopt::Long;
+use CGI::Wiki::Setup::Pg;
 
-my ($dbname, $dbuser, $dbpass) = ("cgi_wiki_test", "wiki", "wiki");
+my ($dbname, $dbuser, $dbpass, $help);
+GetOptions("name=s" => \$dbname,
+           "user=s" => \$dbuser,
+           "pass=s" => \$dbpass,
+           "help"   => \$help,)i;
 
-my $dbh = DBI->connect("dbi:Pg:dbname=$dbname", $dbuser, $dbpass,
-		       { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
-    or croak DBI::errstr;
-
-# Drop tables if they already exist.
-my $sql = "SELECT tablename FROM pg_tables
-           WHERE tablename in ('node', 'content')";
-foreach my $tableref (@{$dbh->selectall_arrayref($sql)}) {
-    $dbh->do("DROP TABLE $tableref->[0]") or croak $dbh->errstr;
+unless (defined($dbname)) {
+    print "You must supply a database name with the --name option\n";
+    print "further help can be found by typing 'perldoc $0'\n";
+    exit 1;
 }
 
-# Set up tables.
-$sql = "CREATE TABLE node (
-  name      varchar(200) NOT NULL DEFAULT '',
-  version   integer NOT NULL default 0,
-  text      text NOT NULL default '',
-  modified  datetime default NULL,
-  PRIMARY KEY (name)
-)";
-$dbh->do($sql) or croak $dbh->errstr;
+if ($help) {
+    print "Help can be found by typing 'perldoc $0'\n";
+    exit 0;
+}
 
-$sql = "CREATE TABLE content (
-  name      varchar(200) NOT NULL default '',
-  version   integer NOT NULL default 0,
-  text      text NOT NULL default '',
-  modified  datetime default NULL,
-  comment   text NOT NULL default '',
-  PRIMARY KEY  (name, version)
-)";
-$dbh->do($sql) or croak $dbh->errstr;
+CGI::Wiki::Setup::Pg::setup($dbname, $dbuser, $dbpass);
 
-# Clean up.
-$dbh->disconnect;
+=head1 NAME
+
+user-setup-postgres - set up a Postgres storage backend for CGI::Wiki
+
+=head1 SYNOPSIS
+
+  user-setup-postgres --name mywiki \
+                      --user wiki  \
+                      --pass wiki  \
+
+=head1 DESCRIPTION
+
+Takes three arguments:
+
+=over 4
+
+=item name
+
+The database name.
+
+=item user
+
+The user that connects to the database. It must have permission
+to create and drop tables in the database.
+
+=item pass
+
+The user's database password.
+
+=head1 AUTHOR
+
+Kake Pugh (kake@earth.li).
+
+=head1 COPYRIGHT
+
+     Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+
+This code is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<CGI::Wiki>, L<CGI::Wiki::Setup::Pg>
+
+=cut
+
+1;

@@ -20,23 +20,23 @@ SKIP: {
     # Test that the implicit_links flag gets passed through right.
     my $raw = "This paragraph has StudlyCaps in.";
     my ($wiki, $cooked);
-    $wiki = CGI::Wiki->new( backend        => $config{backend},
-			    dbname         => $config{dbname},
-			    dbuser         => $config{dbuser},
-			    dbpass         => $config{dbpass},
-			    implicit_links => 1,
-			    node_prefix    => "wiki.cgi?node=" );
+    $wiki = CGI::Wiki->new( storage_backend => $config{backend},
+			    dbname          => $config{dbname},
+			    dbuser          => $config{dbuser},
+			    dbpass          => $config{dbpass},
+			    implicit_links  => 1,
+			    node_prefix     => "wiki.cgi?node=" );
 
     $cooked = $wiki->format($raw);
     like( $cooked, qr!StudlyCaps</a>!,
 	  "StudlyCaps turned into link when we specify implicit_links=1" );
 
-    $wiki = CGI::Wiki->new( backend        => $config{backend},
-			    dbname         => $config{dbname},
-			    dbuser         => $config{dbuser},
-			    dbpass         => $config{dbpass},
-			    implicit_links => 0,
-			    node_prefix    => "wiki.cgi?node=" );
+    $wiki = CGI::Wiki->new( storage_backend => $config{backend},
+			    dbname          => $config{dbname},
+			    dbuser          => $config{dbuser},
+			    dbpass          => $config{dbpass},
+			    implicit_links  => 0,
+			    node_prefix     => "wiki.cgi?node=" );
 
     $cooked = $wiki->format($raw);
     unlike( $cooked, qr!StudlyCaps</a>!,

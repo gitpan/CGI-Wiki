@@ -1,44 +1,74 @@
 #!/usr/bin/perl -w
 
 use strict;
-use DBI;
-use DBIx::FullTextSearch;
-use Carp;
+use Getopt::Long;
+use CGI::Wiki::Setup::DBIxFTSMySQL;
 
-my ($dbname, $dbuser, $dbpass) = ("kakewiki", "wiki", "wiki");
+my ($dbname, $dbuser, $dbpass, $help);
+GetOptions("name=s" => \$dbname,
+           "user=s" => \$dbuser,
+           "pass=s" => \$dbpass,
+           "help"   => \$help,);
 
-my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,
-		       { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
-    or croak DBI::errstr;
-
-# Drop FTS indexes if they already exist.
-my $fts = DBIx::FullTextSearch->open($dbh, "_content_and_title_fts");
-$fts->drop if $fts;
-$fts = DBIx::FullTextSearch->open($dbh, "_title_fts");
-$fts->drop if $fts;
-
-# Set up FullText indexes and index anything already extant.
-my $fts_all = DBIx::FullTextSearch->create($dbh, "_content_and_title_fts",
-					   frontend       => "table",
-					   backend        => "phrase",
-					   table_name     => "node",
-					   column_name    => ["name","text"],
-					   column_id_name => "name",
-					   stemmer        => "en-uk");
-
-my $fts_title = DBIx::FullTextSearch->create($dbh, "_title_fts",
-					      frontend       => "table",
-					      backend        => "phrase",
-					      table_name     => "node",
-					      column_name    => "name",
-					      column_id_name => "name",
-					      stemmer        => "en-uk");
-
-my $sql = "SELECT name FROM node";
-my $sth = $dbh->prepare($sql);
-$sth->execute();
-while (my ($name, $version) = $sth->fetchrow_array) {
-    $fts_title->index_document($name);
-    $fts_all->index_document($name);
+unless (defined($dbname)) {
+    print "You must supply a database name with the --name option\n";
+    print "further help can be found by typing 'perldoc $0'\n";
+    exit 1;
 }
-$sth->finish;
+
+if ($help) {
+    print "Help can be found by typing 'perldoc $0'\n";
+    exit 0;
+}
+
+CGI::Wiki::Setup::DBIxFTSMySQL::setup($dbname, $dbuser, $dbpass);
+
+=head1 NAME
+
+user-setup-mysql-dbixfts - set up a DBIx::FullTextSearch backend for CGI::Wiki
+
+=head1 SYNOPSIS
+
+  user-setup-mysql-dbixfts --name mywiki \
+                           --user wiki  \
+                           --pass wiki  \
+
+=head1 DESCRIPTION
+
+Takes three arguments:
+
+=over 4
+
+=item name
+
+The database name.
+
+=item user
+
+The user that connects to the database. It must have permission
+to create and drop tables in the database.
+
+=item pass
+
+The user's database password.
+
+=back
+
+=head1 AUTHOR
+
+Kake Pugh (kake@earth.li).
+
+=head1 COPYRIGHT
+
+     Copyright (C) 2002 Kake Pugh.  All Rights Reserved.
+
+This code is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<CGI::Wiki>, L<CGI::Wiki::Setup::DBIxFTSMySQL>
+
+=cut
+
+1;

@@ -11,15 +11,16 @@ use lib "lib";
 eval "use CGI::Wiki::TestConfig";
 
 # Even if we do have a previous configuration saved, we can over-ride and
-# be asked all the questions again by specifying the -s flag.
+# be asked all the questions again by specifying the -s flag or setting
+# the appropriate environment variable.
 if ($CGI::Wiki::TestConfig::configured
     and not (@ARGV and $ARGV[0] eq '-s')
+    and not $ENV{CGI_WIKI_RERUN_CONFIG}
    ) {
     print "\nFor the test suite, we use the database and user info\n"
         . "specified during the previous run.  If you want to change\n"
         . "some or all of the values, run 'perl Makefile.PL -s'.\n\n";
 } else {
-    # Collect up all the info.
     print "\nYou should supply at least one set of options for testing,\n"
         . "preferably relevant to the backend(s) you intend to use live.\n"
         . "Running the tests under every possible backend combination is\n"
@@ -27,11 +28,38 @@ if ($CGI::Wiki::TestConfig::configured
         . "string or explicitly enter 'undef'.\n";
 
     my %config;
+
+    # Grab information from previous runs.
     if ($CGI::Wiki::TestConfig::configured) {
         %config = %CGI::Wiki::TestConfig::config;
     }
 
-    # Ask for options for each possible database store, and check them.
+    # Grab information from environment variables.
+    foreach my $store (qw(MySQL Pg)) {
+        my $dbname = $ENV{"CGI_WIKI_".uc($store)."_DBNAME"};
+	if ($dbname and $dbname ne "undef") {
+	    $config{$store}{dbname} = $dbname;
+            foreach my $var (qw(dbuser dbpass)) {
+                my $value = $ENV{"CGI_WIKI_".uc($store)."_".uc($var)};
+		if ($value and $value ne "undef") {
+  	            $config{$store}{$var} = $value;
+		} elsif ($value eq "undef") {
+		    $config{$store}{$var} = undef;
+		}
+	    }
+	} elsif ($dbname eq "undef") {
+	    $config{$store}{dbname} = undef;
+	}
+    }
+
+    my $dbixfts = $ENV{CGI_WIKI_DBIXFTS_MYSQL};
+    if ($dbixfts and $dbixfts ne "undef") {
+        $config{dbixfts} = 1;
+    } elsif ($dbixfts eq "undef") {
+        $config{dbixfts} = 0;
+    }
+
+    # Finally ask questions; then check the settings work.
     my %dsn_prefix = ( MySQL => "dbi:mysql:",
 		       Pg    => "dbi:Pg:dbname=" );
     my %driver = ( MySQL => "DBD::mysql",
@@ -143,10 +171,3 @@ WriteMakefile( NAME         => "CGI::Wiki",
 	       clean => { FILES => "Config lib/CGI/Wiki/TestConfig.pm" }
 	     );
 
-sub MY::postamble {
-    my $module = "lib/CGI/Wiki.pm";
-    return <<EOF
-    README: $module
-\tpod2text $module > README
-EOF
-}

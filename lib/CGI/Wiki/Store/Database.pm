@@ -3,10 +3,11 @@ package CGI::Wiki::Store::Database;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 use DBI;
 use Time::Piece;
+use Time::Seconds;
 use Carp qw(croak);
 
 =head1 NAME
@@ -131,10 +132,7 @@ sub write_node_after_locking {
     my ($self, $node, $content) = @_;
     my $dbh = $self->dbh;
 
-    # Get a timestamp.  I don't care about no steenkin' timezones (yet).
-    my $time = localtime; # Overloaded by Time::Piece.
-    my $timestamp = $time->strftime("%Y-%m-%d %H:%M:%S");
-
+    my $timestamp = $self->_get_timestamp();
     my $comment = ""; # Not implemented yet.
     my $version;
 
@@ -175,6 +173,17 @@ sub write_node_after_locking {
     return 1;
 }
 
+# Returns the timestamp of now, unless epoch is supplied.
+sub _get_timestamp {
+    my $self = shift;
+    # I don't care about no steenkin' timezones (yet).
+    my $time = shift || localtime; # Overloaded by Time::Piece.
+    unless( ref $time ) {
+	$time = localtime($time); # Make it into an object for strftime
+    }
+    return $time->strftime("%Y-%m-%d %H:%M:%S");
+}
+
 =item B<delete_node>
 
   $backend->delete_node($node);
@@ -195,6 +204,71 @@ sub delete_node {
     $dbh->do($sql) or croak "Deletion failed: " . DBI->errstr;
     # And finish it here.
     return 1;
+}
+
+=item B<list_recent_changes>
+
+  # Changes in last 7 days.
+  my @nodes = $backend->list_recent_changes( days => 7 );
+
+  # Changes since a given time.
+  my @nodes = $backend->list_recent_changes( since => 1036235131 );
+
+  # Most recent change and its details.
+  my @nodes = $backend->list_recent_changes( days => 1 );
+  print "Node:          $nodes[0]{name}";
+  print "Last modified: $nodes[0]{last_modified}";
+  print "Comment:       $nodes[0]{comment}";
+
+
+Returns results as an array, in reverse chronological order.  Each
+element of the array is a reference to a hash with the following entries:
+
+=over 4
+
+=item * B<name>: the name of the node
+
+=item * B<last_modified>: the timestamp of when it was last modified
+
+=item * B<comment>: the comment (if any) that was attached to the node
+last time it was modified
+
+=back
+
+Note that adding comments isn't implemented properly yet, so those
+will always be the blank string at the moment.
+
+=cut
+
+sub list_recent_changes {
+    my $self = shift;
+    my %args = @_;
+    if ($args{since}) {
+        return $self->_list_changes_since($args{since});
+    } elsif ($args{days}) {
+        my $now = localtime;
+	my $then = $now - ( ONE_DAY * $args{days} );
+        return $self->_list_changes_since($then);
+    } else {
+	croak "Need to supply a parameter";
+    }
+}
+
+sub _list_changes_since {
+    my $self = shift;
+    my $since = shift;
+    my $timestamp = $self->_get_timestamp($since);
+    my $dbh = $self->dbh;
+    my $sql = "SELECT node.name, node.modified, content.comment
+               FROM node, content WHERE node.modified >= "
+            . $dbh->quote($timestamp)
+            . " AND node.name=content.name AND node.version=content.version "
+	    . " ORDER BY modified DESC";
+    my $nodesref = $dbh->selectall_arrayref($sql);
+    return map { { name          => $_->[0],
+		   last_modified => $_->[1],
+                   comment       => $_->[2] }
+               } @$nodesref;
 }
 
 =item B<list_all_nodes>

@@ -82,7 +82,20 @@ sub display_node {
 		    node_name     => CGI::escapeHTML($node),
 		    node_param    => CGI::escape($node) );
 
-    process_template("node.tt", $node, \%tt_vars);
+    if ($node eq "Recent Changes") {
+        my @recent = $wiki->list_recent_changes( days => 7 );
+        @recent = map { {name          => CGI::escapeHTML($_->{name}),
+                         last_modified => CGI::escapeHTML($_->{last_modified}),
+                         comment       => CGI::escapeHTML($_->{comment}),
+                         url           => "wiki.cgi?node="
+                                          . CGI::escape($_->{name}) }
+                       } @recent;
+        $tt_vars{recent_changes} = \@recent;
+        $tt_vars{days} = 7;
+        process_template("recent_changes.tt", $node, \%tt_vars);
+    } else {
+        process_template("node.tt", $node, \%tt_vars);
+    }
 }
 
 sub preview_node {
@@ -92,15 +105,15 @@ sub preview_node {
 
     if ($wiki->verify_checksum($node, $checksum)) {
         my %tt_vars = ( content      => CGI::escapeHTML($content),
-	  	        preview_html => $wiki->format($content),
-		        checksum     => CGI::escapeHTML($checksum) );
+                          preview_html => $wiki->format($content),
+                        checksum     => CGI::escapeHTML($checksum) );
 
         process_template("edit_form.tt", $node, \%tt_vars);
     } else {
         my ($stored, $checksum) = $wiki->retrieve_node_and_checksum($node);
         my %tt_vars = ( checksum    => CGI::escapeHTML($checksum),
-			new_content => CGI::escapeHTML($content),
-			stored      => CGI::escapeHTML($stored) );
+                        new_content => CGI::escapeHTML($content),
+                        stored      => CGI::escapeHTML($stored) );
         process_template("edit_conflict.tt", $node, \%tt_vars);
     }
 }
@@ -110,7 +123,7 @@ sub edit_node {
     my %tt_vars;
     my ($content, $checksum) = $wiki->retrieve_node_and_checksum($node);
     %tt_vars = ( content  => CGI::escapeHTML($content),
-		 checksum => CGI::escapeHTML($checksum)   );
+                 checksum => CGI::escapeHTML($checksum)   );
 
     process_template("edit_form.tt", $node, \%tt_vars);
 }
@@ -123,18 +136,18 @@ sub process_template {
     $conf ||= {};
 
     my %tt_vars = ( %$vars,
-		    site_name     => "Kake Wiki",
-		    cgi_url       => "wiki.cgi",
-		    contact_email => "kake\@earth.li",
-		    description   => "",
-		    keywords      => "",
-		    stylesheet    => "/~kake/wiki/styles.css",
-		    home_link     => "wiki.cgi",
-		    home_name     => "Home" );
+                    site_name     => "Kake Wiki",
+                    cgi_url       => "wiki.cgi",
+                    contact_email => "kake\@earth.li",
+                    description   => "",
+                    keywords      => "",
+                    stylesheet    => "/~kake/wiki/styles.css",
+                    home_link     => "wiki.cgi",
+                    home_name     => "Home" );
 
     if ($node) {
         $tt_vars{node_name} = CGI::escapeHTML($node);
-	$tt_vars{node_param} = CGI::escape($node);
+        $tt_vars{node_param} = CGI::escape($node);
     }
 
     my %tt_conf = ( %$conf,
@@ -146,8 +159,8 @@ sub process_template {
     unless ($tt->process($template, \%tt_vars)) {
         print qq(<html><head><title>ERROR</title></head><body><p>
                  Failed to process template: )
-	  . $tt->error
-	  . qq(</p></body></html>);
+          . $tt->error
+          . qq(</p></body></html>);
     }
 }
 
@@ -163,8 +176,8 @@ sub commit_node {
     } else {
         my ($stored, $checksum) = $wiki->retrieve_node_and_checksum($node);
         my %tt_vars = ( checksum    => CGI::escapeHTML($checksum),
-			new_content => CGI::escapeHTML($content),
-			stored      => CGI::escapeHTML($stored) );
+                        new_content => CGI::escapeHTML($content),
+                        stored      => CGI::escapeHTML($stored) );
         process_template("edit_conflict.tt", $node, \%tt_vars);
     }
 }
@@ -175,7 +188,7 @@ sub do_search {
     my %finds = $wiki->search_nodes($terms);
     my @sorted = sort { $finds{$a} cmp $finds{$b} } keys %finds;
     my @results = map { { url   => CGI::escape($_),
-			  title => CGI::escapeHTML($_) } } @sorted;
+                          title => CGI::escapeHTML($_) } } @sorted;
     my %tt_vars = ( results => \@results );
     process_template("search_results.tt", "", \%tt_vars);
 }

@@ -1,12 +1,27 @@
 
-- Write some stuff to take advantage of the tables having timestamps and
-  version numbers in.  Need tests to make sure that the versioning data
-  is actually going in properly.  Can do shiny things like RecentChanges
-  and reversion to previous versions with this data; I just haven't taken
-  the time to write them yet, and I don't expect them to be difficult.
+- The instructions in INSTALL are pretty complicated.  An easier procedure
+  or better docs would be good.
+
+- Change retrieve_node and retrieve_node_and_checksum so they can return
+  metadata like last_modified as well as the actual content.
+
+- The modification times are stored in the database as date types -- this
+  is a bit of a pain though since I need to generate a timestamp when
+  storing things, and when I'm retrieving them I'm stuck with the way
+  that the database outputs it unless I munge it myself.  But there would be
+  portability issues (eg if moving the data to a machine with a different
+  timezone or epoch) if I just stored the number of seconds since the
+  epoch, as an integer.  This isn't really a TODO item, actually, it's
+  more of a wonder and a babble.
+
+- I need more tests for the version and last_modified data being stored
+  and retrieved properly.
 
 - A non-database store option would be nice, as would a search for the
   postgres-based store.
 
 - Look at case-sensitivity in node names.
 
+- Make the macro feature more powerful so you can do eg
+    @IMAGE http://www.earth.li/~kake/Images/kateweb.gif
+  and it'll inline it.

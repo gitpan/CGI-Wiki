@@ -34,6 +34,7 @@ SKIP: {
 	    ok( $store->dbh, "...and has set up a database handle" );
 	    ok( $store->retrieve_node("Home"),
 		"...and we can retrieve a node" );
+
 	}
     }
 }

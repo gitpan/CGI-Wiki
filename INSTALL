@@ -1,25 +1,55 @@
 HOW TO INSTALL THIS:
 
-  Mostly the same as usual; see 'perldoc perlmodinstall' if you're stuck.
+  This module can be installed just like any other standard Perl module:
 
-  'perl Makefile.PL' will ask you a few questions about which databases 
-  it can use for testing - the default is to only test what it can get 
-  away without databases for.  It is recommended that you test with as 
-  many backend combinations as your system will allow. 
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+  You may wish to use your local version of 'make' (e.g. 'nmake' on
+  Windows.)  On most systems 'make install' requires you to have root
+  privileges.
+
+  'perl Makefile.PL' will ask a few questions about which databases
+  it can use in the 'make test' stage - the default is to only run those
+  tests that don't need external test databases. It is recommended that
+  you test with as many backend combinations as your system will allow.
+
+  For noninteractive installation, or to provide defaults for interactive
+  installation, set the following environment variables to suitable values.
+  Leave them blank or explicitly set them to 'undef' if you don't want
+  to test that particular backend.
+
+    CGI_WIKI_MYSQL_DBNAME   # If 'undef', following two variables are ignored
+    CGI_WIKI_MYSQL_DBUSER
+    CGI_WIKI_MYSQL_DBPASS
+    CGI_WIKI_PG_DBNAME      # If 'undef', following two variables are ignored
+    CGI_WIKI_PG_DBUSER
+    CGI_WIKI_PG_DBPASS
+    CGI_WIKI_DBIXFTS_MYSQL  # NOTE: Any non-blank value other than 'undef'
+                            # or '0' signifies 'test this'
 
   Second and subsequent successful runs of 'perl Makefile.PL' will use
-  the testing setup specified in the first run.  To over-ride this, do
-  'perl Makefile.PL -s'
+  the testing setup specified in the first run and hence will not ask
+  questions or look for options in environment variables.  To over-ride
+  this behaviour and be asked the questions again, do 'perl Makefile.PL -s'
+  or set the environment variable CGI_WIKI_RERUN_CONFIG to something
+  non-blank.  If you do this then your previous answers will be offered
+  as defaults.
 
-  Better support for noninteractive installation has been requested; I'm
-  working on it, but patches are welcome.
+  When re-running configuration (ie with the '-s' flag or
+  CGI_WIKI_RERUN_CONFIG set), explicit settings in environment variables
+  will over-ride settings specified during previous runs.
+
+  If you provide settings for a backend that you don't have the drivers
+  installed for (DBD::mysql, DBD::Pg, DBIx::FullTextSearch) then they
+  will be ignored.
 
 POST INSTALL:
 
-  You'll want to run one or all of the bin/user-setup-* scripts (edit the
-  database name, user and password parameters in them first) to set
-  up the database tables.  Maybe somebody will be nice and send me patches
-  to make this work more neatly.
+  You'll want to run one or all of the bin/user-setup-* scripts to set
+  up the database tables.
 
 TESTING NOTES:
 

@@ -1,5 +1,6 @@
 use Test::More tests => 1;
 use CGI::Wiki::TestConfig;
+use CGI::Wiki::Setup::MySQL;
 use DBI;
 
 my %config = %{$CGI::Wiki::TestConfig::config{MySQL}};
@@ -7,7 +8,11 @@ my $testing = $config{dbname};
 
 if ($testing) {
     my ($dbname, $dbuser, $dbpass) = @config{qw(dbname dbuser dbpass)};
+
     # Set up the tables in the test database.
+    CGI::Wiki::Setup::MySQL::setup($dbname, $dbuser, $dbpass);
+
+    # Put in the test data.
     my $dbh = DBI->connect("dbi:mysql:$dbname", $dbuser, $dbpass,
                        { PrintError => 1, RaiseError => 1, AutoCommit => 1 } )
         or die "Couldn't connect to database: " . DBI->errstr;
@@ -23,9 +28,6 @@ SKIP: {
 }
 
 __DATA__
-DROP TABLE IF EXISTS node, content
-CREATE TABLE node (name varchar(200) NOT NULL DEFAULT '',version int(10) NOT NULL default 0,text mediumtext NOT NULL default '',modified datetime default NULL,PRIMARY KEY (name))
-CREATE TABLE content (name varchar(200) NOT NULL default '',version int(10) NOT NULL default 0,text mediumtext NOT NULL default '',modified datetime default NULL,comment mediumtext NOT NULL default '',PRIMARY KEY (name, version))
 INSERT INTO node VALUES ('Home',1,'This is the home node.','2002-10-22 10:54:17')
 INSERT INTO node VALUES ('Node1',1,'This is Node1.','2001-07-09 15:13:22')
 INSERT INTO node VALUES ('Another Node',1,'This node exists solely to contain the word \"home\".','2002-10-22 10:56:05')

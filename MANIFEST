@@ -2,7 +2,6 @@ Changes
 INSTALL
 MANIFEST
 Makefile.PL
-README
 TODO
 bin/user-setup-mysql-dbixfts.pl
 bin/user-setup-mysql.pl
@@ -13,10 +12,14 @@ examples/templates/edit_form.tt
 examples/templates/header.tt
 examples/templates/navbar.tt
 examples/templates/node.tt
+examples/templates/recent_changes.tt
 examples/templates/search_results.tt
 examples/templates/site_index.tt
 examples/wiki.cgi
 lib/CGI/Wiki/Search/DBIxFTS.pm
+lib/CGI/Wiki/Setup/MySQL.pm
+lib/CGI/Wiki/Setup/Pg.pm
+lib/CGI/Wiki/Setup/DBIxFTSMySQL.pm
 lib/CGI/Wiki/Store/Database.pm
 lib/CGI/Wiki/Store/MySQL.pm
 lib/CGI/Wiki/Store/Pg.pm
@@ -24,8 +27,8 @@ lib/CGI/Wiki.pm
 t/001_setup_mysql.t
 t/002_setup_pg.t
 t/003_setup_mysql_dbixfts.t
-t/CGI-Wiki-Store-Database.t
-t/CGI-Wiki-Store-MySQL.t
-t/CGI-Wiki-Store-Pg.t
-t/CGI-Wiki.t
-t/formatting.t
+t/011_cgi_wiki.t
+t/021_cgi_wiki_store_database.t
+t/022_cgi_wiki_store_mysql.t
+t/023_cgi_wiki_store_pg.t
+t/031_formatting.t

@@ -1,2 +1,11 @@
-0.01    ? October 2002
+0.02    ? November 2002
+        Pulled out the database setup stuff into modules (Mark Fowler
+          did most of this bit, thanks).
+        Added recent_changes method and its tests, changed the example
+          wiki to show how this can be used.
+        Renamed some tests since the order they're run in matters now.
+        Added better support for noninteractive installation (with help
+          from Mark again).
+
+0.01    28 October 2002
         Initial release.
