@@ -1,3 +1,8 @@
+DEPRECATED:
+
+  This distribution is now deprecated; CGI::Wiki has been renamed to
+  Wiki::Toolkit; please upgrade at your earliest convenience.
+
 NOTES FOR UPGRADERS:
 
   I added an index to the metadata table in the postgres setup in

@@ -6,11 +6,19 @@ DESCRIPTION
     for you.  You will still need to write some code - this isn't an
     instant Wiki.
 
+    This module has now been renamed Wiki::Toolkit and no further development
+    will take place under the CGI::Wiki name. Please upgrade at your earliest
+    convenience.
+
 SEE ALSO
     Tom Insam's CGI::Wiki::Kwiki is however an instant wiki, running
     on a CGI::Wiki backend.
 
 SIGNIFICANT RECENT CHANGES
+
+0.63    27 September 2006
+        Marked as obsolete and added pointers to Wiki::Toolkit.
+        No other changes
 
 0.49    23 September 2003
         Added "ignore_case" option to ->list_nodes_by_metadata

@@ -3,7 +3,7 @@ package CGI::Wiki;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.62';
+$VERSION = '0.63';
 
 use Carp qw(croak carp);
 use Digest::MD5 "md5_hex";
@@ -27,6 +27,11 @@ CGI::Wiki - A toolkit for building Wikis.
 
 Helps you develop Wikis quickly by taking care of the boring bits for
 you.  You will still need to write some code - this isn't an instant Wiki.
+
+B<This module has now been renamed Wiki::Toolkit and no further development
+will take place under the CGI::Wiki name. Please upgrade at your earliest
+convenience.>
+
 
 =head1 SYNOPSIS
 
